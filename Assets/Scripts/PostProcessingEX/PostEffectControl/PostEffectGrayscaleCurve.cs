@@ -1,0 +1,36 @@
+/*
+** Author      : Yogi
+** CreateDate  : 2022-33-12 12:33:11
+** Description : 
+*/
+
+using UnityEngine;
+
+public class PostEffectGrayscaleCurve : PostEffectBase<Grayscale>
+{
+    #region Config
+
+    public AnimationCurve m_Curve;
+    public float m_Intensity;
+
+    #endregion
+
+    #region Private
+
+    protected override void SetUpSetting()
+    {
+        base.SetUpSetting();
+
+        setting.blend.overrideState = true;
+
+    }
+    protected override void EvaluteByPercent(float percent)
+    {
+        base.EvaluteByPercent(percent);
+
+        setting.blend.value = m_Curve.Evaluate(percent) * m_Intensity;
+    }
+
+    #endregion
+
+}
