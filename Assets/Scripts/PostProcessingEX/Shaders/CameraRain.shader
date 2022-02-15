@@ -5,7 +5,14 @@ Shader "Hidden/Custom/CameraRain"
     #include "Packages/com.unity.postprocessing/PostProcessing/Shaders/StdLib.hlsl"
 
     TEXTURE2D_SAMPLER2D(_MainTex, sampler_MainTex);
+    float4 _MainTex_TexelSize;
 
+    float _GaussStrength;
+
+    float _DropSpeed;
+    float _RainAmount;
+
+    float _RainScale;
 
     #define S(a, b, t) smoothstep(a, b, t)
 
@@ -89,6 +96,7 @@ Shader "Hidden/Custom/CameraRain"
         return c;
     }
 
+    //Reference By https://www.shadertoy.com/view/ltffzl
     float2 Drops(float2 uv, float t, float l0, float l1, float l2) {
         float s = StaticDrops(uv, t)*l0; 
         float2 m1 = DropLayer2(uv, t)*l1;
@@ -100,6 +108,46 @@ Shader "Hidden/Custom/CameraRain"
         return float2(c, max(m1.y*l0, m2.y*l1));
     }
 
+    float normpdf(in float x, in float sigma)
+    {
+        return 0.39894*exp(-0.5*x*x/(sigma*sigma))/sigma;
+    }
+
+    // Reference By https://www.shadertoy.com/view/XdfGDH
+    float3 GaussBlur(float2 uv){
+        float3 c = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex,uv);
+        //declare stuff
+        const int mSize = 11; // Optimal point
+        const int kSize = (mSize-1)/2;
+        float kernel[mSize];
+        float3 final_colour = float3(0.0,0.,0.);
+        
+        //create the 1-D kernel
+        float sigma = 7.0;
+        float Z = 0.0;
+        for (int j = 0; j <= kSize; ++j)
+        {
+            kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), sigma);
+        }
+        
+        //get the normalization factor (as the gaussian has been clamped)
+        for (int j = 0; j < mSize; ++j)
+        {
+            Z += kernel[j];
+        }
+        
+        //read out the texels
+        for (int i=-kSize; i <= kSize; ++i)
+        {
+            for (int j=-kSize; j <= kSize; ++j)
+            {
+                final_colour += kernel[kSize+j]*kernel[kSize+i]*
+                SAMPLE_TEXTURE2D(_MainTex,sampler_MainTex, uv+float2(float(i),float(j)) * _MainTex_TexelSize.xy * _GaussStrength).rgb;
+            }
+        }
+        return final_colour/(Z*Z);
+    }
+
     float4 Frag(VaryingsDefault i) : SV_Target
     {
         float2 uv = i.texcoord - .5;
@@ -107,11 +155,11 @@ Shader "Hidden/Custom/CameraRain"
         _MainTex.GetDimensions(0,w,h,l);
         uv = uv * float2(w/h,1.0f);
         float2 UV = i.texcoord;
-        float T = _Time.y;
+        float T = _Time.y * _DropSpeed;
         float t = T*.2;
         
         // Control Point 1 (Amount)
-        float rainAmount = sin(T*.05)*.3+.7;//iMouse.z>0. ? M.y : sin(T*.05)*.3+.7;
+        float rainAmount = sin(T*.05)*.3+.7 * _RainAmount;//iMouse.z>0. ? M.y : sin(T*.05)*.3+.7;
         
         float maxBlur = lerp(3., 6., rainAmount);
         float minBlur = 2.;
@@ -120,7 +168,7 @@ Shader "Hidden/Custom/CameraRain"
         float heart = 0.;
         
         // Control Point 2 (Zoom)
-        float zoom = .01f;//-cos(T*.2);
+        float zoom = _RainScale;//-cos(T*.2);
         uv *= .7+zoom*.3;
 
         UV = (UV-.5)*(.9+zoom*.1)+.5;
@@ -137,10 +185,17 @@ Shader "Hidden/Custom/CameraRain"
         float cy = Drops(uv+e.yx, t, staticDrops, layer1, layer2).x;
         float2 n = float2(cx-c.x, cy-c.x);		// expensive normals
         
-        float focus = lerp(maxBlur-c.y, minBlur, S(.1, .2, c.x));
-        // float3 col = SAMPLE_TEXTURE2D(_MainTex,sampler_MainTex,UV+n);
-        float3 col = _MainTex.SampleLevel(sampler_MainTex,UV+n,6);
+        // float focus = lerp(maxBlur-c.y, minBlur, S(.1, .2, c.x));
+
+        // this is Sample Level Main Tex, But I don't now how to sample, may by just need a Grass Bloom
+        // It Doesn't have LOD, So This is useless
+        float3 gaussBlur = GaussBlur(i.texcoord);
+        float3 col = SAMPLE_TEXTURE2D(_MainTex,sampler_MainTex,UV+n);
+        col = lerp(gaussBlur,col,  S(.1, .2, c.x));
+        // float3 col = _MainTex.SampleLevel( _MainTex_Sampler, UV+n, focus );
+        //        _MainTex.SampleLevel(sampler_MainTex,UV+n,focus); 
         // float3 col = textureLod(iChannel0, UV+n, focus).rgb;
+
         return float4(col, 1.);
     }
 
