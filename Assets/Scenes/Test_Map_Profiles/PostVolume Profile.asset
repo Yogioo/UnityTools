@@ -1538,13 +1538,13 @@ MonoBehaviour:
     value: 0.58
   rainScale:
     overrideState: 1
-    value: 0.1
+    value: -0.87
   staticLayer:
     overrideState: 1
-    value: 0.58
+    value: 0.55
   layerOne:
     overrideState: 1
-    value: 2.03
+    value: 0.64
   layerTwo:
     overrideState: 1
-    value: 0.47
+    value: 0.71
