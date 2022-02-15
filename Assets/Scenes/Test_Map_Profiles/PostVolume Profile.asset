@@ -1527,3 +1527,24 @@ MonoBehaviour:
   blend:
     overrideState: 1
     value: 1
+  gaussStrength:
+    overrideState: 0
+    value: 1.3
+  dropSpeed:
+    overrideState: 0
+    value: 1.136
+  rainAmount:
+    overrideState: 0
+    value: 0.58
+  rainScale:
+    overrideState: 1
+    value: 0.1
+  staticLayer:
+    overrideState: 1
+    value: 0.58
+  layerOne:
+    overrideState: 1
+    value: 2.03
+  layerTwo:
+    overrideState: 1
+    value: 0.47

@@ -14,6 +14,9 @@ Shader "Hidden/Custom/CameraRain"
 
     float _RainScale;
 
+    float _StaticLayer;
+    float _LayerOne,_LayerTwo;
+
     #define S(a, b, t) smoothstep(a, b, t)
 
     float3 N13(float p) {
@@ -173,9 +176,9 @@ Shader "Hidden/Custom/CameraRain"
 
         UV = (UV-.5)*(.9+zoom*.1)+.5;
         
-        float staticDrops = S(-.5, 1., rainAmount)*2.;
-        float layer1 = S(.25, .75, rainAmount);
-        float layer2 = S(.0, .5, rainAmount);
+        float staticDrops = S(-.5, 1., rainAmount)*2. * _StaticLayer;
+        float layer1 = S(.25, .75, rainAmount) * _LayerOne;
+        float layer2 = S(.0, .5, rainAmount) * _LayerTwo;
         
         
         float2 c = Drops(uv, t, staticDrops, layer1, layer2);

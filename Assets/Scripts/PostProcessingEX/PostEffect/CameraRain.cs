@@ -18,6 +18,12 @@ public sealed class CameraRain : PostProcessEffectSettings
     [Range(-5f, 5f)]
     public FloatParameter rainScale = new FloatParameter { value = 0 };
 
+    [Range(0, 5f)]
+    public FloatParameter staticLayer = new FloatParameter { value = 1 };
+    [Range(0, 5f)]
+    public FloatParameter layerOne = new FloatParameter { value = 1 };
+    [Range(0, 5f)]
+    public FloatParameter layerTwo = new FloatParameter { value = 1 };
 
 
 }
@@ -32,6 +38,11 @@ public sealed class CameraRainRenderer : PostProcessEffectRenderer<CameraRain>
         sheet.properties.SetFloat("_DropSpeed", settings.dropSpeed);
         sheet.properties.SetFloat("_RainAmount", settings.rainAmount);
         sheet.properties.SetFloat("_RainScale", settings.rainScale);
+
+        sheet.properties.SetFloat("_StaticLayer", settings.staticLayer);
+        sheet.properties.SetFloat("_LayerOne", settings.layerOne);
+        sheet.properties.SetFloat("_LayerTwo", settings.layerTwo);
+
 
         context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 0);
     }
