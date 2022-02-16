@@ -1798,6 +1798,8 @@ MonoBehaviour:
       PublicKeyToken=null
   - assemblyQualifiedName: CameraRain, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
       PublicKeyToken=null
+  - assemblyQualifiedName: ScanningWave, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
 --- !u!124 &725336803
 Behaviour:
   m_ObjectHideFlags: 0

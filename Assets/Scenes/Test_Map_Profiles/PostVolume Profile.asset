@@ -110,6 +110,7 @@ MonoBehaviour:
   - {fileID: 8260970321193745964}
   - {fileID: 1173401104050862760}
   - {fileID: 8482542374511350875}
+  - {fileID: 4981108590675251574}
 --- !u!114 &1173401104050862760
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -1467,6 +1468,35 @@ MonoBehaviour:
       - 0.5
       - 0.5
       - 0.5
+--- !u!114 &4981108590675251574
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 203e3cb7b8e7c6844aa9fdad4bcb011b, type: 3}
+  m_Name: ScanningWave
+  m_EditorClassIdentifier: 
+  active: 1
+  enabled:
+    overrideState: 1
+    value: 1
+  blend:
+    overrideState: 1
+    value: 1
+  _FontTex:
+    overrideState: 1
+    value: {fileID: 2800000, guid: fc054946d3b1d664f9ef48eb507af2b5, type: 3}
+    defaultState: 1
+  scanningCenter:
+    overrideState: 1
+    value: {x: -13.9, y: 1.698376, z: 4.1}
+  waveColor:
+    overrideState: 1
+    value: {r: 9.965379, g: 0, b: 5.5955706, a: 1}
 --- !u!114 &8041740785000382458
 MonoBehaviour:
   m_ObjectHideFlags: 3
