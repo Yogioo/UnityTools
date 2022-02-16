@@ -1486,17 +1486,21 @@ MonoBehaviour:
     value: 1
   blend:
     overrideState: 1
-    value: 1
+    value: 0.99
   _FontTex:
     overrideState: 1
-    value: {fileID: 2800000, guid: fc054946d3b1d664f9ef48eb507af2b5, type: 3}
+    value: {fileID: 2800000, guid: be6dee60dcc379d4ebe73ed7a7a3ff0c, type: 3}
+    defaultState: 1
+  _ScanTex:
+    overrideState: 1
+    value: {fileID: 2800000, guid: b525519477b042f49a67279df93292ad, type: 3}
     defaultState: 1
   scanningCenter:
     overrideState: 1
-    value: {x: -13.9, y: 1.698376, z: 4.1}
+    value: {x: -27.55, y: 0, z: 3.889}
   waveColor:
     overrideState: 1
-    value: {r: 9.965379, g: 0, b: 5.5955706, a: 1}
+    value: {r: 2.531578, g: 0, b: 16, a: 1}
 --- !u!114 &8041740785000382458
 MonoBehaviour:
   m_ObjectHideFlags: 3

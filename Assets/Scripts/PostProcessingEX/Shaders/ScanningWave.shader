@@ -9,6 +9,9 @@ Shader "Hidden/Custom/ScanningWave"
     TEXTURE2D_SAMPLER2D(_CameraDepthNormalsTexture, sampler_CameraDepthNormalsTexture);
     TEXTURE2D_SAMPLER2D(_FontTex, sampler_FontTex);
     
+    TEXTURE2D_SAMPLER2D(_ScanTex, sampler_ScanTex);
+
+    
     // 注: 这里需要摄像机Camera.depthTextureMode = DepthTextureMode.DepthNormals;
     // 否则不显示
 
@@ -55,7 +58,6 @@ Shader "Hidden/Custom/ScanningWave"
     {
         float4 _TextColor = float4(.2,.2,5,1);
         float _TextScale = 1;
-        float _Dis = _Blend * 100;
         
         float4 color = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.texcoord);
         float depth = SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, i.texcoord);
@@ -79,18 +81,11 @@ Shader "Hidden/Custom/ScanningWave"
 
             //Triplanar
             float front = Triplanar(_FontTex, worldPos * _TextScale, worldNormal).r;
-                        
             
-            float dis = distance(worldPos,_ScanningCenter) / _Dis;
-            //dis = smoothstep(0,1,dis);// - smoothstep(0,1,1-front);
-            dis = smoothstep(0,1,1-dis);
-            //front = pow(front,10);
-
-            //float rain = TriplanarRain(worldPos, worldNormal) ;
-            // float notUp = worldNormal.y < 0.99f;
-            //color =  front * dis;//lerp(color, _TextColor, rain * font);
+            float scan = SAMPLE_TEXTURE2D(_ScanTex,sampler_ScanTex,(worldPos.xz - _ScanningCenter.xz) * (_Blend) + 0.5);
             
-            color.rgb += dis  * front * _WaveColor.rgb;
+            color.rgb += scan  * front * _WaveColor.rgb;
+            //color.rgb += scan;
         }
 
         return color;
