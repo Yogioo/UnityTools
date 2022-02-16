@@ -23,9 +23,7 @@ public sealed class CameraRain : PostProcessEffectSettings
     [Range(0, 5f)]
     public FloatParameter layerOne = new FloatParameter { value = 1 };
     [Range(0, 5f)]
-    public FloatParameter layerTwo = new FloatParameter { value = 1 };
-
-
+    public FloatParameter layerTwo = new FloatParameter { value = 1 }; 
 }
 
 public sealed class CameraRainRenderer : PostProcessEffectRenderer<CameraRain>
@@ -42,7 +40,6 @@ public sealed class CameraRainRenderer : PostProcessEffectRenderer<CameraRain>
         sheet.properties.SetFloat("_StaticLayer", settings.staticLayer);
         sheet.properties.SetFloat("_LayerOne", settings.layerOne);
         sheet.properties.SetFloat("_LayerTwo", settings.layerTwo);
-
 
         context.command.BlitFullscreenTriangle(context.source, context.destination, sheet, 0);
     }

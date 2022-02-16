@@ -73,12 +73,12 @@ Shader "Yogi/Rain"
                 float4 rainMap = tex2D(_RainMap, i.uv);
                 float wave = rainMap.r;
 
-                float waveOne = waveLayer(wave,float2(1,0.2));
+                float waveOne = waveLayer(wave,float2(.9,0.1));
 
                 rainMap = tex2D(_RainMap, i.uv + 0.4f);
-                float waveTwo = waveLayer(rainMap.r,float2(1.2,0.8));
+                float waveTwo = waveLayer(rainMap.r,float2(.7,0.3));
 
-                float switchValue = sin(_Time.y * 2) /2. +.5;
+                float switchValue = sin(_Time.y ) /2. +.5;
                 float waveResult = lerp(waveOne,waveTwo, switchValue);
 
                 float2 worlduvXY,worlduvZY;
