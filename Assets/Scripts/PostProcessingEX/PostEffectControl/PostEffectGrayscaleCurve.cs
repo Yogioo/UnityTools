@@ -4,6 +4,7 @@
 ** Description : 
 */
 
+using UnityEditor;
 using UnityEngine;
 
 public class PostEffectGrayscaleCurve : PostEffectBase<Grayscale>
