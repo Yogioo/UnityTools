@@ -125,6 +125,66 @@ MonoBehaviour:
   enabled:
     overrideState: 1
     value: 1
+  rayStep:
+    overrideState: 1
+    value: 0.05
+  weatherMap:
+    overrideState: 1
+    value: {fileID: 2800000, guid: f9bcaf1da924d0742b9c341e5d80235f, type: 3}
+    defaultState: 1
+  shapeTex:
+    overrideState: 1
+    value: {fileID: 11700000, guid: cb4b6eb5c9e81414487f4f275cfce048, type: 2}
+    defaultState: 1
+  shapeTiling:
+    overrideState: 1
+    value: 0.1
+  shapeDetailTex:
+    overrideState: 1
+    value: {fileID: 11700000, guid: ee3251080e1789d4bab1803dfa4af693, type: 2}
+    defaultState: 1
+  shapeDetailTiling:
+    overrideState: 1
+    value: 0.1
+  shapeNoiseWeights:
+    overrideState: 1
+    value: {x: -0.17, y: 27.17, z: -3.65}
+  densityOffset:
+    overrideState: 1
+    value: 26
+  densityMultiplier:
+    overrideState: 1
+    value: 1
+  boundsMin:
+    overrideState: 1
+    value: {x: -10, y: 0, z: -10}
+  boundsMax:
+    overrideState: 1
+    value: {x: 10, y: 10, z: 10}
+  lightAbsorptionTowardSun:
+    overrideState: 1
+    value: 0.16
+  lightAbsorptionThroughCloud:
+    overrideState: 1
+    value: 0.3
+  colorA:
+    overrideState: 1
+    value: {r: 0.972549, g: 0.6142019, b: 0.0039215647, a: 1}
+  colorB:
+    overrideState: 1
+    value: {r: 0.7921569, g: 0.54638785, b: 0.48235294, a: 1}
+  colorOffsetA:
+    overrideState: 1
+    value: 0.59
+  colorOffsetB:
+    overrideState: 1
+    value: 1.15
+  darknessThreshold:
+    overrideState: 1
+    value: 0
+  phaseParams:
+    overrideState: 1
+    value: {x: 0.72, y: 1, z: 0.5, w: 1.58}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

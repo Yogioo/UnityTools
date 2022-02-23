@@ -7,12 +7,32 @@ Shader "Hidden/Custom/Clouds"
     TEXTURE2D_SAMPLER2D(_MainTex, sampler_MainTex);
     TEXTURE2D_SAMPLER2D(_CameraDepthTexture, sampler_CameraDepthTexture);
 
+    float _rayStep;
+
     float4x4 _InverseProjectionMatrix;
     float4x4 _InverseViewMatrix;
     float3 _boundsMin, _boundsMax;
-    float _texScale;
-    sampler3D _noiseTex;
-    
+    sampler3D _ShapeTex;
+    float _ShapeTiling;
+    sampler3D _ShapeDetailTex;
+    float _ShapeDetailTiling;
+    float3 _ShapeNoiseWeights;
+    float _DensityOffset;
+    float _DensityMultiplier;
+
+    sampler2D _WeatherMap;
+
+    float3 _WorldSpaceLightPos0;
+    float _lightAbsorptionTowardSun;
+    float _lightAbsorptionThroughCloud;
+
+    float3 _ColA, _ColB;
+    float _ColorOffsetA, _ColorOffsetB;
+    float3 _LightColor0;
+    float _DarknessThreshold;
+
+    float4 _phaseParams;
+
     // Get World Space By Screen UV and Depth
     float4 GetWorldSpacePosition(float depth, float2 screenUV)
     {
@@ -27,22 +47,54 @@ Shader "Hidden/Custom/Clouds"
         return world_vector;
     }
 
-    float CloudRayMatching(float3 ro, float3 rd, float3 boundsMin, float3 boundsMax)
+    float Remap(float original_value, float original_min, float original_max, float new_Min, float new_Max)
     {
-        float sum = 0.0;
-        rd *= .3; // step length
-        for (int i = 0; i < 256; ++i)
-        {
-            ro += rd;
-            if (ro.x < boundsMax.x && ro.x > boundsMin.x &&
-                ro.z < boundsMax.z && ro.z > boundsMin.z &&
-                ro.y < boundsMax.y && ro.y > boundsMin.y
-            )
-            {
-                sum += 0.01;
-            }
-        }
-        return sum;
+        float zeroToOne = (original_value - original_min) / (original_max - original_min);
+        float newRange = new_Max - new_Min;
+        return new_Min + zeroToOne * newRange;
+    }
+
+    float SampleWeather(float3 pos)
+    {
+        float heightGradient;
+        float3 size = _boundsMax - _boundsMin;
+        float3 boundsCentre = (_boundsMax + _boundsMin) * .5f;
+        float2 uv = (size.xz * 0.5f + (pos.xz - boundsCentre.xz)) / max(size.x, size.z);
+
+        // Get Weather Map
+        float4 weather = tex2D(_WeatherMap, uv);
+        // Soft Down Side
+        float gMin = Remap(weather.x, 0, 1, .1, .6);
+        // Fade by Height
+        float heightPercent = (pos.y - _boundsMin.y) / size.y;
+        heightGradient = saturate(Remap(heightPercent, 0.0, gMin, 0, 1))
+            * saturate(Remap(heightPercent, 0.0, weather.r, 1.0, 0.0));
+
+        // Edge of the attenuation
+        const float containerEdgeFadeDst = 10;
+        float2 minA = _boundsMax.xz - pos.xz;
+        float2 minB = pos.xz - _boundsMin.xz;
+        float2 minDis = min(minA, minB);
+        float2 dstFromEdge = min(containerEdgeFadeDst, minDis);
+        // 0~containerEdgeFadeDst remap to 0~1
+        float edgeWeight = min(dstFromEdge.x, dstFromEdge.y) / containerEdgeFadeDst;
+
+        // mix
+        heightGradient *= edgeWeight;
+
+        return heightGradient;
+    }
+
+    float SampleDensity(float3 rayPos)
+    {
+        float speedShape = _Time.y;
+        float3 uvw = rayPos * _ShapeTiling + float3(speedShape, speedShape * .2, 0.);
+        float4 shapeNoise = tex3D(_ShapeTex, uvw);
+        float4 normalizedShapeWeights = normalize(float4(_ShapeNoiseWeights.xyz, 1.));
+        float shapeFBM = dot(shapeNoise, normalizedShapeWeights);
+        float baseShapeDensity = shapeFBM + _DensityOffset * .01f;
+        float weather = SampleWeather(rayPos);
+        return saturate(baseShapeDensity * _DensityMultiplier * weather);
     }
 
     // Ray Cast Box Get out float2:(Ray Enter Bounds form Camera Distance,Ray Out Bounds form Enter Point Distance)
@@ -67,19 +119,47 @@ Shader "Hidden/Custom/Clouds"
         return float2(dstToBox, dstInsideBox);
     }
 
-    float sampleDensity(float3 rayPos)
+    float3 LightMarch(float3 position)
     {
-        float3 uvw = rayPos * _texScale;
-        float4 shapeNoise = tex3D(_noiseTex, uvw);
-        return shapeNoise.r;
+        // it is already normalized 
+        float3 dirToLight = _WorldSpaceLightPos0.xyz;
+        // light calc bounds
+        float3 dstInsideBox = RayBoxDst(_boundsMin, _boundsMax, position, 1 / dirToLight).y;
+        float stepSize = dstInsideBox / 10;
+        float totalDensity = 0;
+        for (int step = 0; step < 8; step++)
+        {
+            position += dirToLight * stepSize;
+            totalDensity += max(0, SampleDensity(position));
+        }
+        float transmittance = exp(-totalDensity * _lightAbsorptionTowardSun);
+        // remap to three sections of color
+        // most bright => light color
+        // mid bright => Color A
+        // dark => Color B
+        // It's Trick Not Physics
+        float3 cloudColor = lerp(_ColA, _LightColor0, saturate(transmittance * _ColorOffsetA));
+        cloudColor = lerp(_ColB, cloudColor, saturate(pow(transmittance * _ColorOffsetB, 3)));
+        return _DarknessThreshold + transmittance * cloudColor * (1 - _DarknessThreshold);
     }
-    
+
+    float hg(float a, float g)
+    {
+        float g2 = g * g;
+        return (1 - g2) / (4. * PI * pow(1 + g2 - 2 * g * a, 1.5));
+    }
+
+    float phase(float a)
+    {
+        float blend = .5;
+        float hgBlend = lerp(hg(a, _phaseParams.x), hg(a, - _phaseParams.y), blend);
+        float ret = _phaseParams.z + hgBlend * _phaseParams.w;
+        return ret;
+    }
 
 
     float4 Frag(VaryingsDefault i) : SV_Target
     {
-        _boundsMin = -10;
-        _boundsMax = 10;
         // screen Depth
         float depth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, i.texcoordStereo);
         // world space pos
@@ -88,6 +168,7 @@ Shader "Hidden/Custom/Clouds"
         // camera to pixel pos
         float3 worldViewDir = normalize(worldPos.xyz - rayPos.xyz);
         float depthEyeLinear = length(worldPos.xyz - _WorldSpaceCameraPos);
+
         float2 rayToBoundsInfo = RayBoxDst(_boundsMin, _boundsMax, rayPos, (1 / worldViewDir));
         float dstToBox = rayToBoundsInfo.x;
         float dstInsideBox = rayToBoundsInfo.y;
@@ -95,18 +176,43 @@ Shader "Hidden/Custom/Clouds"
 
         float4 color = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.texcoord);
 
-        float3 entryPoint = rayPos + worldViewDir * dstToBox;
-        
+        // sun light scattering
+        float cosAngle = dot(worldViewDir, _WorldSpaceLightPos0.xyz);
+        float3 phaseValue = phase(cosAngle);
 
-        if (dstLimit > 0)
+
+        float3 entryPoint = rayPos + worldViewDir * dstToBox;
+
+        float dstTravelled = 0;
+
+        float sumDensity = 1;
+        float stepSize = _rayStep;
+        float3 lightEnergy = 0;
+        const float sizeLoop = 512;
+        [loop]
+        for (int j = 0; j < sizeLoop; j++)
         {
-            float cloud = CloudRayMatching(rayPos.xyz, worldViewDir, _boundsMin, _boundsMax);
-            return color + cloud;
+            if (dstTravelled < dstLimit)
+            {
+                rayPos = entryPoint + (worldViewDir * dstTravelled);
+                float density = SampleDensity(rayPos);
+                if (density > 0)
+                {
+                    float3 lightTransmittance = LightMarch(rayPos);
+                    lightEnergy += density * stepSize * sumDensity * lightTransmittance * phaseValue;
+                    sumDensity *= exp(-density * stepSize * _lightAbsorptionThroughCloud);
+
+                    if (sumDensity < 0.01)
+                        break;
+                }
+            }
+            dstTravelled += stepSize;
         }
-        else
-        {
-            return color;
-        }
+        float4 cloud = float4(lightEnergy, sumDensity);
+        color.rgb *= cloud.a;
+        color.rgb += cloud.rgb;
+
+        return color;
     }
     ENDHLSL
 
