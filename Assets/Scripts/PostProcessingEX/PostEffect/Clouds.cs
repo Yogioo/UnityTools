@@ -31,12 +31,6 @@ public sealed class Clouds : PostProcessEffectSettings
     public FloatParameter darknessThreshold = new FloatParameter();
 
     public Vector4Parameter phaseParams = new Vector4Parameter(){value = new Vector4(0.72f, 1, 0.5f, 1.58f) };
-    // float3 _boundsMin, _boundsMax;
-    // float _lightAbsorptionTowardSun;
-    // float3 _ColA, _ColB;
-    // float _ColorOffsetA, _ColorOffsetB;
-    // float3 _LightColor0;
-    // float _DarknessThreshold;
 }
 
 public sealed class CloudsRenderer : PostProcessEffectRenderer<Clouds>
