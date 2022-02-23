@@ -9,9 +9,12 @@ Shader "Hidden/Custom/Clouds"
 
     float _rayStep;
 
+
     float4x4 _InverseProjectionMatrix;
     float4x4 _InverseViewMatrix;
     float3 _boundsMin, _boundsMax;
+
+    sampler2D _WeatherMap;
     sampler3D _ShapeTex;
     float _ShapeTiling;
     sampler3D _ShapeDetailTex;
@@ -19,8 +22,10 @@ Shader "Hidden/Custom/Clouds"
     float3 _ShapeNoiseWeights;
     float _DensityOffset;
     float _DensityMultiplier;
-
-    sampler2D _WeatherMap;
+    float _DetailWeights;
+    float _DetailNoiseWeight;
+    float4 _xy_Speed_zw_Warp;
+    sampler2D _MaskNoise;
 
     float3 _WorldSpaceLightPos0;
     float _lightAbsorptionTowardSun;
@@ -54,15 +59,13 @@ Shader "Hidden/Custom/Clouds"
         return new_Min + zeroToOne * newRange;
     }
 
-    float SampleWeather(float3 pos)
+    float SampleWeather(float3 pos, float2 uv, float moveSpeed)
     {
         float heightGradient;
         float3 size = _boundsMax - _boundsMin;
-        float3 boundsCentre = (_boundsMax + _boundsMin) * .5f;
-        float2 uv = (size.xz * 0.5f + (pos.xz - boundsCentre.xz)) / max(size.x, size.z);
 
         // Get Weather Map
-        float4 weather = tex2D(_WeatherMap, uv);
+        float4 weather = tex2D(_WeatherMap, uv + float2(moveSpeed,0.));
         // Soft Down Side
         float gMin = Remap(weather.x, 0, 1, .1, .6);
         // Fade by Height
@@ -85,16 +88,39 @@ Shader "Hidden/Custom/Clouds"
         return heightGradient;
     }
 
+
+
     float SampleDensity(float3 rayPos)
     {
-        float speedShape = _Time.y;
-        float3 uvw = rayPos * _ShapeTiling + float3(speedShape, speedShape * .2, 0.);
-        float4 shapeNoise = tex3D(_ShapeTex, uvw);
+        float3 size = _boundsMax - _boundsMin;
+        float3 boundsCentre = (_boundsMax + _boundsMin) * .5f;
+        float2 uv = (size.xz * 0.5f + (rayPos.xz - boundsCentre.xz)) / max(size.x, size.z);
+        
+        float speedShape = _Time.y * _xy_Speed_zw_Warp.x;
+        float speedDetail = _Time.y * _xy_Speed_zw_Warp.y;
+        float4 maskNoise = tex2Dlod(_MaskNoise,float4(uv + float2(speedShape * .5, 0),0,0));
+        float3 uvwShape = rayPos * _ShapeTiling + float3(speedShape, speedShape * .2, 0.);
+        float3 uvwDetail = rayPos * _ShapeDetailTiling + float3(speedDetail, speedDetail * .2, 0.);
+
+        float4 shapeNoise = tex3Dlod(_ShapeTex, float4(uvwShape.xyz + (maskNoise * _xy_Speed_zw_Warp.z * 0.1), 0.));
+        float4 detailNoise = tex3Dlod(_ShapeDetailTex, float4(uvwDetail.xyz * _xy_Speed_zw_Warp.w, 0.));
+
         float4 normalizedShapeWeights = normalize(float4(_ShapeNoiseWeights.xyz, 1.));
-        float shapeFBM = dot(shapeNoise, normalizedShapeWeights);
+        float weather = SampleWeather(rayPos,uv, speedShape * .4);
+        float shapeFBM = dot(shapeNoise, normalizedShapeWeights) * weather;
         float baseShapeDensity = shapeFBM + _DensityOffset * .01f;
-        float weather = SampleWeather(rayPos);
-        return saturate(baseShapeDensity * _DensityMultiplier * weather);
+
+        if (baseShapeDensity > 0)
+        {
+            // Shape Detail 
+            float detailFBM = pow(detailNoise.r, _DetailWeights);
+            float oneMinusShape = 1 - baseShapeDensity;
+            float detailErodeWeight = oneMinusShape * oneMinusShape * oneMinusShape;
+            float cloudDensity = baseShapeDensity - detailFBM * detailErodeWeight * _DetailNoiseWeight;
+
+            return saturate(cloudDensity * _DensityMultiplier);
+        }
+        return 0;
     }
 
     // Ray Cast Box Get out float2:(Ray Enter Bounds form Camera Distance,Ray Out Bounds form Enter Point Distance)
