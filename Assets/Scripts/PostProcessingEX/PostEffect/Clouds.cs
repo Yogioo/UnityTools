@@ -16,7 +16,11 @@ public sealed class Clouds : PostProcessEffectSettings
     public Vector3Parameter shapeNoiseWeights = new Vector3Parameter { value = new Vector4(-0.17f, 27.17f, -3.65f) };
     public FloatParameter densityOffset = new FloatParameter() {value = 1};
     public FloatParameter densityMultiplier = new FloatParameter() {value = 1};
-    
+    public FloatParameter detailWeights = new FloatParameter() {value = 1};
+    public FloatParameter detailNoiseWeight = new FloatParameter() {value = 1};
+
+    public Vector4Parameter xy_Speed_zw_Warp = new Vector4Parameter() { value = Vector4.one };
+    public TextureParameter maskNoise = new TextureParameter();
 
     public Vector3Parameter boundsMin = new Vector3Parameter(){value =  new Vector3(-10,-10,-10)};
     public Vector3Parameter boundsMax = new Vector3Parameter(){value =  new Vector3(10,10,10)};
@@ -51,7 +55,10 @@ public sealed class CloudsRenderer : PostProcessEffectRenderer<Clouds>
         sheet.properties.SetVector(Shader.PropertyToID("_ShapeNoiseWeights"),settings.shapeNoiseWeights.value);
         sheet.properties.SetFloat(Shader.PropertyToID("_DensityOffset"),settings.densityOffset.value);
         sheet.properties.SetFloat(Shader.PropertyToID("_DensityMultiplier"),settings.densityMultiplier.value);
-        
+        sheet.properties.SetFloat(Shader.PropertyToID("_DetailWeights"),settings.detailWeights.value);
+        sheet.properties.SetFloat(Shader.PropertyToID("_DetailNoiseWeight"),settings.detailNoiseWeight.value);
+        sheet.properties.SetVector(Shader.PropertyToID("_xy_Speed_zw_Warp"),settings.xy_Speed_zw_Warp.value);
+        sheet.properties.SetTexture(Shader.PropertyToID("_MaskNoise"),settings.maskNoise.value);
             
         sheet.properties.SetVector(Shader.PropertyToID("_boundsMin"),settings.boundsMin.value);
         sheet.properties.SetVector(Shader.PropertyToID("_boundsMax"),settings.boundsMax.value);
