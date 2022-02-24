@@ -165,7 +165,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b9a305e18de0c04dbd257a21cd47087, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sharedProfile: {fileID: 11400000, guid: 6217a0aa4020c344897c496d8761ad27, type: 2}
+  sharedProfile: {fileID: 11400000, guid: 82ace0d40548bd94ea0a73fd1eca650b, type: 2}
   isGlobal: 1
   blendDistance: 0
   weight: 1
@@ -280,6 +280,67 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1587515605
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 7480887632276917258, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
+      propertyPath: m_RootOrder
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 7480887632276917258, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7480887632276917258, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7480887632276917258, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7480887632276917258, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7480887632276917258, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7480887632276917258, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7480887632276917258, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7480887632276917258, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7480887632276917258, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7480887632276917258, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7480887632276917263, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
+      propertyPath: m_Name
+      value: VFX_Rain
+      objectReference: {fileID: 0}
+    - target: {fileID: 7480887632276917263, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 326a64b0a963b354ba89591d1fcd7362, type: 3}
 --- !u!1 &1627338259
 GameObject:
   m_ObjectHideFlags: 0
@@ -443,7 +504,7 @@ Transform:
   m_GameObject: {fileID: 1857150237}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0.667, z: 0}
-  m_LocalScale: {x: 20.583, y: 20.583, z: 20.583}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 5
@@ -646,11 +707,11 @@ MonoBehaviour:
   m_ShowToolkit: 0
   m_ShowCustomSorter: 0
   breakBeforeColorGrading: 0
-  m_BeforeTransparentBundles: []
+  m_BeforeTransparentBundles:
+  - assemblyQualifiedName: Clouds, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
   m_BeforeStackBundles:
   - assemblyQualifiedName: EdgeDetection, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
-      PublicKeyToken=null
-  - assemblyQualifiedName: RayMarchingCloud, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
       PublicKeyToken=null
   m_AfterStackBundles:
   - assemblyQualifiedName: Grayscale, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,

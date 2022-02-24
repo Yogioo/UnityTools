@@ -1,4 +1,4 @@
-Shader "Hidden/Custom/RayMarchingCloud"
+Shader "Hidden/Custom/Clouds"
 {
    
     HLSLINCLUDE

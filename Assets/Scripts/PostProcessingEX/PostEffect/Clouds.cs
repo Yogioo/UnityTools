@@ -3,8 +3,8 @@ using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
 
 [Serializable]
-[PostProcess(typeof(RayMarchingCloudRenderer), PostProcessEvent.BeforeStack, "Custom/Clouds")]
-public sealed class RayMarchingCloud : PostProcessEffectSettings
+[PostProcess(typeof(CloudRenderer), PostProcessEvent.BeforeTransparent, "Custom/Clouds")]
+public sealed class Clouds : PostProcessEffectSettings
 {
     //Texture
     [Header("整体形状贴图")]
@@ -70,7 +70,7 @@ public sealed class RayMarchingCloud : PostProcessEffectSettings
 
 
 
-public sealed class RayMarchingCloudRenderer : PostProcessEffectRenderer<RayMarchingCloud>
+public sealed class CloudRenderer : PostProcessEffectRenderer<Clouds>
 {
     Transform cloudTransform;
     Vector3 boundsMin;
@@ -96,7 +96,7 @@ public sealed class RayMarchingCloudRenderer : PostProcessEffectRenderer<RayMarc
     }
     public override void Render(PostProcessRenderContext context)
     {
-        var sheet = context.propertySheets.Get(Shader.Find("Hidden/Custom/RayMarchingCloud"));
+        var sheet = context.propertySheets.Get(Shader.Find("Hidden/Custom/Clouds"));
         //sheet.properties.SetColor(Shader.PropertyToID("_color"), settings.color);
          
         Matrix4x4 projectionMatrix = GL.GetGPUProjectionMatrix(context.camera.projectionMatrix, false);

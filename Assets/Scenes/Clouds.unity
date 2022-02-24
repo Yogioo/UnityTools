@@ -637,7 +637,7 @@ MonoBehaviour:
   m_BeforeStackBundles:
   - assemblyQualifiedName: EdgeDetection, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
       PublicKeyToken=null
-  - assemblyQualifiedName: RayMarchingCloud, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+  - assemblyQualifiedName: Clouds, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
       PublicKeyToken=null
   m_AfterStackBundles:
   - assemblyQualifiedName: Grayscale, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
