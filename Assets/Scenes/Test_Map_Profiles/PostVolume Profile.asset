@@ -125,9 +125,15 @@ MonoBehaviour:
   enabled:
     overrideState: 1
     value: 1
+  downSampleCount:
+    overrideState: 1
+    value: 8
   rayStep:
     overrideState: 1
-    value: 0.5
+    value: 1
+  rayOffsetStrength:
+    overrideState: 1
+    value: 2
   weatherMap:
     overrideState: 1
     value: {fileID: 2800000, guid: bc830ae7850741344b2f0b6671d6de80, type: 3}
@@ -138,42 +144,46 @@ MonoBehaviour:
     defaultState: 1
   shapeTiling:
     overrideState: 1
-    value: 0.1
+    value: 0.002
   shapeDetailTex:
     overrideState: 1
-    value: {fileID: 11700000, guid: ee3251080e1789d4bab1803dfa4af693, type: 2}
+    value: {fileID: 11700000, guid: dde5d5a1451767d48b0ea30f597f1983, type: 2}
     defaultState: 1
   shapeDetailTiling:
     overrideState: 1
-    value: 0.1
+    value: 0.022
   shapeNoiseWeights:
     overrideState: 1
-    value: {x: -0.17, y: 27.17, z: -3.65}
+    value: {x: 4.63, y: 19.9, z: -3.18}
   densityOffset:
     overrideState: 1
-    value: 27.24
+    value: -10.9
   densityMultiplier:
     overrideState: 1
-    value: 1
+    value: 1.2
   detailWeights:
     overrideState: 1
-    value: 0.95
+    value: 2.06
   detailNoiseWeight:
     overrideState: 1
-    value: 0.97
+    value: 6.4
   xy_Speed_zw_Warp:
     overrideState: 1
-    value: {x: 0.1, y: 0.4, z: 2, w: 1}
+    value: {x: 0.05, y: 0.3, z: 0, w: 8}
   maskNoise:
     overrideState: 1
     value: {fileID: 2800000, guid: f9bcaf1da924d0742b9c341e5d80235f, type: 3}
     defaultState: 1
+  blueNoise:
+    overrideState: 1
+    value: {fileID: 2800000, guid: d25158ef7a361f6409bbeb2b86bb2118, type: 3}
+    defaultState: 1
   boundsMin:
     overrideState: 1
-    value: {x: -10, y: 0, z: -10}
+    value: {x: -500, y: 0, z: -500}
   boundsMax:
     overrideState: 1
-    value: {x: 10, y: 10, z: 10}
+    value: {x: 500, y: 40, z: 500}
   lightAbsorptionTowardSun:
     overrideState: 1
     value: 0.16
@@ -182,22 +192,30 @@ MonoBehaviour:
     value: 0.3
   colorA:
     overrideState: 1
-    value: {r: 0.972549, g: 0.624244, b: 0.0039215647, a: 1}
+    value:
+      r: 1
+      g: 0.34901962
+      b: 0
+      a: 1
   colorB:
     overrideState: 1
-    value: {r: 0.31679422, g: 0.38106468, b: 0.5943396, a: 1}
+    value:
+      r: 0.3764706
+      g: 0.4745098
+      b: 0.5568628
+      a: 1
   colorOffsetA:
     overrideState: 1
-    value: 0.59
+    value: 0.86
   colorOffsetB:
     overrideState: 1
-    value: 0.7
+    value: 0.82
   darknessThreshold:
     overrideState: 1
-    value: 0
+    value: -0.06
   phaseParams:
     overrideState: 1
-    value: {x: 0.72, y: 1, z: 0.5, w: 1.58}
+    value: {x: 0.78, y: 0.25, z: 0.29, w: 0.6}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -221,7 +239,7 @@ MonoBehaviour:
   - {fileID: 8482542374511350875}
   - {fileID: 4981108590675251574}
   - {fileID: -7400617083769316640}
-  - {fileID: -2523606263343976181}
+  - {fileID: 7004567453422099739}
 --- !u!114 &1173401104050862760
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -1612,6 +1630,102 @@ MonoBehaviour:
   waveColor:
     overrideState: 1
     value: {r: 2.531578, g: 0, b: 16, a: 1}
+--- !u!114 &7004567453422099739
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: RayMarchingCloud
+  m_EditorClassIdentifier: Assembly-CSharp::RayMarchingCloud
+  active: 1
+  enabled:
+    overrideState: 1
+    value: 1
+  noise3D:
+    overrideState: 1
+    value: {fileID: 11700000, guid: cb4b6eb5c9e81414487f4f275cfce048, type: 2}
+    defaultState: 1
+  noiseDetail3D:
+    overrideState: 1
+    value: {fileID: 11700000, guid: dde5d5a1451767d48b0ea30f597f1983, type: 2}
+    defaultState: 1
+  shapeTiling:
+    overrideState: 1
+    value: 0.002
+  detailTiling:
+    overrideState: 1
+    value: 0.022
+  weatherMap:
+    overrideState: 1
+    value: {fileID: 2800000, guid: bc830ae7850741344b2f0b6671d6de80, type: 3}
+    defaultState: 1
+  maskNoise:
+    overrideState: 1
+    value: {fileID: 2800000, guid: f9bcaf1da924d0742b9c341e5d80235f, type: 3}
+    defaultState: 1
+  blueNoise:
+    overrideState: 1
+    value: {fileID: 2800000, guid: d25158ef7a361f6409bbeb2b86bb2118, type: 3}
+    defaultState: 1
+  colA:
+    overrideState: 1
+    value: {r: 1, g: 0.34901962, b: 0, a: 1}
+  colB:
+    overrideState: 1
+    value: {r: 0.38470098, g: 0.5244209, b: 0.6132076, a: 1}
+  colorOffset1:
+    overrideState: 1
+    value: 0.86
+  colorOffset2:
+    overrideState: 1
+    value: 0.82
+  lightAbsorptionTowardSun:
+    overrideState: 1
+    value: 0.16
+  lightAbsorptionThroughCloud:
+    overrideState: 1
+    value: 0.3
+  phaseParams:
+    overrideState: 1
+    value: {x: 0.78, y: 0.25, z: 0.29, w: 0.06}
+  densityOffset:
+    overrideState: 1
+    value: -10.38
+  densityMultiplier:
+    overrideState: 1
+    value: 1.2
+  step:
+    overrideState: 1
+    value: 3.5
+  rayStep:
+    overrideState: 1
+    value: 0.06
+  rayOffsetStrength:
+    overrideState: 1
+    value: 2
+  Downsample:
+    overrideState: 1
+    value: 1
+  heightWeights:
+    overrideState: 1
+    value: 0.5
+  shapeNoiseWeights:
+    overrideState: 1
+    value: {x: 4.63, y: 19.9, z: -3.18, w: -18.4}
+  detailWeights:
+    overrideState: 1
+    value: 2.87
+  detailNoiseWeight:
+    overrideState: 1
+    value: 10.71
+  xy_Speed_zw_Warp:
+    overrideState: 1
+    value: {x: 0.05, y: 0.3, z: 0, w: 8}
 --- !u!114 &8041740785000382458
 MonoBehaviour:
   m_ObjectHideFlags: 3
