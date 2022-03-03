@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: TestMat2
-  m_Shader: {fileID: 4800000, guid: 653bfe548ce5471449b03657bb264830, type: 3}
+  m_Name: DrawMeshUlit
+  m_Shader: {fileID: 4800000, guid: 0a01e6fbcb38457e9e4e28b183bbccbf, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -20,10 +20,8 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: b8eaff072f120ec4087d9de8a5a550ba, type: 3}
+        m_Texture: {fileID: 2800000, guid: e827e59de682fa240b472ada972185f0, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
-    m_Floats:
-    - _Glossiness: 0.5
-    - _Metallic: 0
+    m_Floats: []
     m_Colors: []

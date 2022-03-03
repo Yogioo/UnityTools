@@ -28,7 +28,7 @@
             sampler2D _MainTex;
 
             #if SHADER_TARGET >= 45
-            StructuredBuffer<float4> positionBuffer;
+            StructuredBuffer<float4x4> localToWorldBuffer;
             #endif
 
             struct v2f
@@ -51,16 +51,16 @@
             v2f vert(appdata_full v, uint instanceID : SV_InstanceID)
             {
                 #if SHADER_TARGET >= 45
-                float4 data = positionBuffer[instanceID];
+                float4x4 data = localToWorldBuffer[instanceID];
                 #else
-                float4 data = 0;
+                float4x4 data = 0;
                 #endif
 
-                float rotation = data.w * data.w * _Time.x * 0.5f;
-                rotate2D(data.xz, rotation);
+                // float rotation = data.w * data.w * _Time.x * 0.5f;
+                // rotate2D(data.xz, rotation);
 
-                float3 localPosition = v.vertex.xyz * data.w;
-                float3 worldPosition = data.xyz + localPosition;
+                float3 worldPosition = mul(data,float4(v.vertex.xyz,1.0f));
+                // float3 worldPosition = ;
                 float3 worldNormal = v.normal;
 
 
