@@ -1,24 +1,18 @@
-using System;
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 using Random = UnityEngine.Random;
 
 public class DrawMeshTest : MonoBehaviour
 {
-    // public Mesh instanceMesh;
-    // public Material instanceMaterial;
-    // public int subMeshIndex = 0;
-
-    // private int cachedInstanceCount = -1;
-    // private int cachedSubMeshIndex = -1;
-    // private ComputeBuffer localToWorldMatrixBuffer;
-    // private ComputeBuffer argsBuffer;
-    // private uint[] args = new uint[5] { 0, 0, 0, 0, 0 };
-
     public GameObject TestGO;
-
+    public ComputeShader CullCompute;
     private Dictionary<int, RendererCall> rendererData = new Dictionary<int, RendererCall>();
+
+    struct CullData
+    {
+        public Vector3 center;
+        public Vector3 extent;
+    }
 
     class RendererCall
     {
@@ -27,12 +21,15 @@ public class DrawMeshTest : MonoBehaviour
         public int subMeshIndex = 0;
         public List<Renderer> renders;
         public ComputeBuffer localToWorldMatrixBuffer;
+        public ComputeBuffer localToWorldMatrixBufferCulled;
+        public ComputeBuffer cullDataBuffer;
         public ComputeBuffer argsBuffer;
         private uint[] args = new uint[5] { 0, 0, 0, 0, 0 };
         public bool isNeedUpdateBuffer = false;
 
         private List<Matrix4x4> local2World = new List<Matrix4x4>();
-
+        private CullData[] cullData;
+        
         public RendererCall(Renderer render)
         {
             this.renders = new List<Renderer>() { render };
@@ -50,21 +47,29 @@ public class DrawMeshTest : MonoBehaviour
 
         public void UpdateBuffers()
         {
-            // if (!isNeedUpdateBuffer)
-            //     return;
-            // isNeedUpdateBuffer = false;
+            if (!isNeedUpdateBuffer)
+                return;
+            isNeedUpdateBuffer = false;
 
             // Ensure submesh index is in range
             if (instanceMesh != null)
                 subMeshIndex = Mathf.Clamp(subMeshIndex, 0, instanceMesh.subMeshCount - 1);
 
+            UpdateMatrixBuffer();
+
+            UpdateArgsBuffer();
+        }
+
+        private void UpdateMatrixBuffer()
+        {
             // Positions
             if (localToWorldMatrixBuffer != null)
                 localToWorldMatrixBuffer.SetCounterValue(0);
-                // localToWorldMatrixBuffer.Release();
+            // localToWorldMatrixBuffer.Release();
             else
                 localToWorldMatrixBuffer = new ComputeBuffer(renders.Count, sizeof(float) * 4 * 4);
-            // localToWorldMatrixBuffer.SetCounterValue(0);
+
+
             for (int i = 0; i < renders.Count; i++)
             {
                 if (local2World.Count <= i)
@@ -79,7 +84,10 @@ public class DrawMeshTest : MonoBehaviour
 
             localToWorldMatrixBuffer.SetData(local2World);
             instanceMaterial.SetBuffer("localToWorldBuffer", localToWorldMatrixBuffer);
+        }
 
+        private void UpdateArgsBuffer()
+        {
             // Indirect args
             if (instanceMesh != null)
             {
@@ -96,20 +104,67 @@ public class DrawMeshTest : MonoBehaviour
             argsBuffer.SetData(args);
         }
 
+        private void UpdateCullDataBuffer()
+        {
+            if (cullDataBuffer != null)
+            {
+                cullDataBuffer.SetCounterValue(0);
+            }
+            else
+            {
+                cullDataBuffer = new ComputeBuffer(this.renders.Count, sizeof(float) * 3 * 2);
+            }
+
+            CullData[] data = new CullData[this.renders.Count];
+            for (var i = 0; i < this.renders.Count; i++)
+            {
+                data[i] = new CullData()
+                {
+                    center = this.renders[i].bounds.center,
+                    extent = this.renders[i].bounds.extents
+                };
+            }
+        }
+
+        public void Cull(ComputeShader cs)
+        {
+            if (localToWorldMatrixBufferCulled != null)
+            {
+                localToWorldMatrixBufferCulled.SetCounterValue(0);
+            }
+            else
+            {
+                localToWorldMatrixBufferCulled =
+                    new ComputeBuffer(this.renders.Count, sizeof(float) * 4 * 4, ComputeBufferType.Append);
+            }
+
+            UpdateCullDataBuffer();
+            // TODO: 视椎剔除
+            // TODO: 遮挡剔除
+
+            var k = cs.FindKernel("CSMain");
+            cs.SetBuffer(k, "LocalToWorld", localToWorldMatrixBuffer);
+            cs.SetBuffer(k, "args", argsBuffer);
+            cs.SetInt("Count", this.renders.Count);
+
+            cs.SetBuffer(k, "LocalToWorldCulled", localToWorldMatrixBufferCulled);
+            cs.SetBuffer(k,"CullDataBuffer", cullDataBuffer);
+
+            cs.Dispatch(k, this.renders.Count / 8, 1, 1);
+            // Matrix4x4[] data = new Matrix4x4[this.renders.Count];
+            // localToWorldMatrixBufferCulled.GetData(data);
+        }
+
         public void Release()
         {
-            if (localToWorldMatrixBuffer != null)
-            {
-                localToWorldMatrixBuffer.Release();
-            }
-
+            localToWorldMatrixBuffer?.Release();
             localToWorldMatrixBuffer = null;
-            if (argsBuffer != null)
-            {
-                argsBuffer.Release();
-            }
-
+            argsBuffer?.Release();
             argsBuffer = null;
+            localToWorldMatrixBufferCulled?.Release();
+            localToWorldMatrixBufferCulled = null;
+            cullDataBuffer?.Release();
+            cullDataBuffer = null;
         }
     }
 
@@ -145,10 +200,7 @@ public class DrawMeshTest : MonoBehaviour
 
     void Update()
     {
-        // Update starting position buffer
-        // if (cachedSubMeshIndex != subMeshIndex)
-        // UpdateBuffers();
-
+        UpdateBuffers();
         // Render
         foreach (var call in this.rendererData)
         {
@@ -163,6 +215,9 @@ public class DrawMeshTest : MonoBehaviour
         foreach (var call in this.rendererData)
         {
             call.Value.UpdateBuffers();
+
+
+            call.Value.Cull(CullCompute);
         }
     }
 

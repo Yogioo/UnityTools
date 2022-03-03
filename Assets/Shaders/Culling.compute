@@ -1,0 +1,30 @@
+﻿#pragma kernel CSMain
+
+struct CullData
+{
+    float3 center;
+    float3 extent;
+};
+
+// Input
+StructuredBuffer<float4x4> LocalToWorld;
+RWStructuredBuffer<uint> args;
+StructuredBuffer<CullData> CullDataBuffer;
+int Count;
+// TODO:获得包围盒信息作用于视椎裁剪
+// TODO:获得上一帧深度图作用于深度剔除
+
+// Output
+AppendStructuredBuffer<float4x4> LocalToWorldCulled;
+
+[numthreads(8,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    float4x4 m =  LocalToWorld[id.x];
+    LocalToWorldCulled.Append(m);
+    args[1] = Count;
+}
+
+// TODO: 视椎剔除
+
+// TODO: 遮挡剔除
