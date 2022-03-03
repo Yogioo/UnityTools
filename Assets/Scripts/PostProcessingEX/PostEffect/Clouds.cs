@@ -3,50 +3,74 @@ using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
 
 [Serializable]
-[PostProcess(typeof(RayMarchingCloudRenderer), PostProcessEvent.BeforeStack, "Custom/Clouds")]
-public sealed class RayMarchingCloud : PostProcessEffectSettings
+[PostProcess(typeof(CloudRenderer), PostProcessEvent.BeforeTransparent, "Custom/Clouds")]
+public sealed class Clouds : PostProcessEffectSettings
 {
     //Texture
+    [Header("整体形状贴图")]
     public TextureParameter noise3D = new TextureParameter { value = null };
+    [Header("细节形状贴图")]
     public TextureParameter noiseDetail3D = new TextureParameter { value = null };
-
+    
+    [Header("整体形状贴图缩放")]
     public FloatParameter shapeTiling = new FloatParameter { value = 0.01f };
+    [Header("细节形状贴图缩放")]
     public FloatParameter detailTiling = new FloatParameter { value = 0.1f };
 
+    [Header("天气贴图")]
     public TextureParameter weatherMap = new TextureParameter { value = null };
+    [Header("遮罩图 用于偏移天气采样")]
     public TextureParameter maskNoise = new TextureParameter { value = null };
+    [Header("Dither图 用于处理提高步长后的阶梯感")]
     public TextureParameter blueNoise = new TextureParameter { value = null };
 
     //light
     //public FloatParameter numStepsLight = new FloatParameter { value = 6 };
+    [Header("一阶颜色")]
     public ColorParameter colA = new ColorParameter { value = Color.white };
+    [Header("二阶颜色")]
     public ColorParameter colB = new ColorParameter { value = Color.white };
+    [Header("一阶颜色阈值")]
     public FloatParameter colorOffset1 = new FloatParameter { value = 0.59f };
+    [Header("二阶颜色阈值")]
     public FloatParameter colorOffset2 = new FloatParameter { value = 1.02f };
+    [Header("太阳直射光吸收系数")]
     public FloatParameter lightAbsorptionTowardSun = new FloatParameter { value = 0.1f };
+    [Header("云层光吸收系数")]
     public FloatParameter lightAbsorptionThroughCloud = new FloatParameter { value = 1 };
+    [Header("太阳散射系数")]
     public Vector4Parameter phaseParams = new Vector4Parameter { value = new Vector4(0.72f, 1, 0.5f, 1.58f) };
 
     //density
+    [Header("密度偏移")]
     public FloatParameter densityOffset = new FloatParameter { value = 4.02f };
+    [Header("密度系数")]
     public FloatParameter densityMultiplier = new FloatParameter { value = 2.31f };
+    [Header("步长")]
     public FloatParameter step = new FloatParameter { value = 1.2f };
+    [Header("步长")]
     public FloatParameter rayStep = new FloatParameter { value = 1.2f };
+    [Header("抖动偏移距离")]
     public FloatParameter rayOffsetStrength = new FloatParameter { value = 1.5f };
+    [Header("降分辨率次数")]
     [Range(1, 16)]
     public IntParameter Downsample = new IntParameter { value = 4 };
+    [Header("高度系数")]
     [Range(0, 1)]
     public FloatParameter heightWeights = new FloatParameter { value = 1 };
+    [Header("形状控制权重")]
     public Vector4Parameter shapeNoiseWeights = new Vector4Parameter { value = new Vector4(-0.17f, 27.17f, -3.65f, -0.08f) };
+    [Header("细节权重")]
     public FloatParameter detailWeights = new FloatParameter { value = -3.76f };
+    [Header("细节形状控制权重")]
     public FloatParameter detailNoiseWeight = new FloatParameter { value = 0.12f };
-
+    [Header("x形状移动速度 y细节移动速度 z形状重复 w细节重复")]
     public Vector4Parameter xy_Speed_zw_Warp = new Vector4Parameter { value = new Vector4(0.05f, 1, 1, 10) };
 }
 
 
 
-public sealed class RayMarchingCloudRenderer : PostProcessEffectRenderer<RayMarchingCloud>
+public sealed class CloudRenderer : PostProcessEffectRenderer<Clouds>
 {
     Transform cloudTransform;
     Vector3 boundsMin;
@@ -72,7 +96,7 @@ public sealed class RayMarchingCloudRenderer : PostProcessEffectRenderer<RayMarc
     }
     public override void Render(PostProcessRenderContext context)
     {
-        var sheet = context.propertySheets.Get(Shader.Find("Hidden/Custom/RayMarchingCloud"));
+        var sheet = context.propertySheets.Get(Shader.Find("Hidden/Custom/Clouds"));
         //sheet.properties.SetColor(Shader.PropertyToID("_color"), settings.color);
          
         Matrix4x4 projectionMatrix = GL.GetGPUProjectionMatrix(context.camera.projectionMatrix, false);
@@ -93,6 +117,7 @@ public sealed class RayMarchingCloudRenderer : PostProcessEffectRenderer<RayMarc
         {
             sheet.properties.SetTexture(Shader.PropertyToID("_noiseTex"), settings.noise3D.value);
         }
+        
         if (settings.noiseDetail3D.value != null)
         {
             sheet.properties.SetTexture(Shader.PropertyToID("_noiseDetail3D"), settings.noiseDetail3D.value);
