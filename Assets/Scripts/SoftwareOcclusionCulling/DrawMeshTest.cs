@@ -44,7 +44,7 @@ public class DrawMeshTest : MonoBehaviour {
         // Positions
         if (positionBuffer != null)
             positionBuffer.Release();
-        positionBuffer = new ComputeBuffer(instanceCount, 16);
+        positionBuffer = new ComputeBuffer(instanceCount, sizeof(float) * 4);
         Vector4[] positions = new Vector4[instanceCount];
         for (int i = 0; i < instanceCount; i++) {
             float angle = Random.Range(0.0f, Mathf.PI * 2.0f);
