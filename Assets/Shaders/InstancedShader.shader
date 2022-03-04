@@ -1,4 +1,4 @@
-﻿Shader "Instanced/InstancedShader"
+﻿Shader "Yogi/InstancedShader"
 {
     Properties
     {
@@ -6,10 +6,8 @@
     }
     SubShader
     {
-
         Pass
         {
-
             Tags
             {
                 "LightMode"="ForwardBase"

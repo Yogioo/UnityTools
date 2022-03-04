@@ -3,31 +3,172 @@
 struct CullData
 {
     float3 center;
-    float3 extent;
+    float3 extents;
+    float4x4 localToWorld;
 };
 
 // Input
-StructuredBuffer<float4x4> LocalToWorld;
-RWStructuredBuffer<uint> args;
 StructuredBuffer<CullData> CullDataBuffer;
 int Count;
+
+float4x4 vpMatrix; //相机的VP矩阵
+
+bool isOpenGL;
+
+float4 cameraPanels[6];
+
+int depthTextureSize;
+
+Texture2D hizTexture; //hiz纹理
+
+// #define S
 // TODO:获得包围盒信息作用于视椎裁剪
 // TODO:获得上一帧深度图作用于深度剔除
 
 // Output
 AppendStructuredBuffer<float4x4> LocalToWorldCulled;
 
-[numthreads(8,1,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+bool IsOutsideThePlane(float4 plane, float3 pointPosition)
 {
-    float4x4 m =  LocalToWorld[id.x];
-    LocalToWorldCulled.Append(m);
-    args[1] = Count;
+    if (dot(plane, pointPosition) + plane.w > 0)
+        return true;
+    return false;
+}
 
-    // 遮挡剔除
-    // 1. 计算深度
-    // 2. 与上一帧的屏幕深度做比较
-    // 3. 等于或小于上一帧的屏幕深度时, 显示 否则不显示
+[numthreads(8,1,1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    float4x4 m = CullDataBuffer[id.x].localToWorld;
+    float4x4 mvp = mul(vpMatrix, m);
+
+    float3 center = CullDataBuffer[id.x].center;
+    float3 extens = CullDataBuffer[id.x].extents;
+
+    float minX = 1, minY = 1, minZ = 1, maxX = -1, maxY = -1, maxZ = -1; //NDC下新的的AABB各个参数
+
+    //-------------------------------------------------------视椎剔除-------------------------------------------------------
+    float3 BoundsVerts[8];
+    float3 minBounds = BoundsVerts[0] = center - extens;
+    float3 maxBounds = BoundsVerts[1] = center + extens;
+    BoundsVerts[2] = float3(maxBounds.x, maxBounds.y, minBounds.z);
+    BoundsVerts[3] = float3(maxBounds.x, minBounds.y, maxBounds.z);
+    BoundsVerts[4] = float3(maxBounds.x, minBounds.y, minBounds.z);
+    BoundsVerts[5] = float3(minBounds.x, maxBounds.y, maxBounds.z);
+    BoundsVerts[6] = float3(minBounds.x, maxBounds.y, minBounds.z);
+    BoundsVerts[7] = float3(minBounds.x, minBounds.y, maxBounds.z);
+
+    int insideCount = 0;
+    for (int j = 0; j < 8; j++)
+    {
+        int inCameraCount = 0;
+        for (int i = 0; i < 6; i++)
+        {
+            if (!IsOutsideThePlane(cameraPanels[i], BoundsVerts[j]))
+            {
+                inCameraCount++;
+            }
+        }
+
+        if (inCameraCount == 6)
+        {
+            insideCount++;
+            break;
+        }
+
+        // 计算八个顶点的ClipSpace坐标 用于深度剔除
+        float4 clipSpace = mul(vpMatrix, float4(center.xyz + BoundsVerts[j].xyz, 1.0f));
+        //计算该草ndc下的AABB
+        float3 ndc = clipSpace.xyz / clipSpace.w;
+        minX = min(minX, ndc.x);
+        minY = min(minY, ndc.y);
+        minZ = min(minZ, ndc.z);
+        maxX = max(maxX, ndc.x);
+        maxY = max(maxY, ndc.y);
+        maxZ = max(maxZ, ndc.z);
+        // if (minX > ndc.x) minX = ndc.x;
+        // if (minY > ndc.y) minY = ndc.y;
+        // if (minZ > ndc.z) minZ = ndc.z;
+        // if (maxX < ndc.x) maxX = ndc.x;
+        // if (maxY < ndc.y) maxY = ndc.y;
+        // if (maxZ < ndc.z) maxZ = ndc.z;
+    }
+    if (insideCount <= 0)
+    {
+        return;
+    }
+
+    // float4 c = mul(mvp, float4(center,1.0f));
+    // c /= c.w;
+    // minX = c.x - 0.1f;
+    // minY = c.y - 0.1f;
+    // minZ = c.z - 0.1f;
+    // maxX = c.x + 0.1f;
+    // maxY = c.y + 0.1f;
+    // maxZ = c.z + 0.1f;
+
+    //-------------------------------------------------------遮挡剔除-------------------------------------------------------
+    #ifdef S
+    //ndc的AABB的左下角和右上角的uv坐标，ndc的-1到1转换为uv的0到1
+    float2 uvLeftBottom = float2(minX, minY) * 0.5f + 0.5f;
+    float2 uvRightTop = float2(maxX, maxY) * 0.5f + 0.5f;
+    //DirextX下NDC的z值即为深度（因为MVP变换后是反转过的，所以要取最大的那个值）
+    float depth = maxZ;
+    // //如果是OpenGL,首先要取最小的那个z值，然后需要 *0.5+0.5 转换到 0-1 的深度值
+    // if (isOpenGL) {
+    // depth = minZ;
+    // depth = depth * 0.5f + 0.5f;
+    // }
+    //计算应该读取哪层mipmap
+    uint mipmapLevel = (uint)clamp(log2(max(maxX - minX, maxY - minY) / 2 * depthTextureSize), 0,
+                                   log2(depthTextureSize) - 4);
+    //当前mipmap的大小
+    uint size = depthTextureSize / (1 << mipmapLevel);
+    //左下角和右下角点所在的像素
+    uint2 pixelLeftBottom = uint2(clamp(uvLeftBottom.x * size, 0, size - 1),
+                                  clamp(uvLeftBottom.y * size, 0, size - 1));
+    uint2 pixelRightTop = uint2(clamp(uvRightTop.x * size, 0, size - 1), clamp(uvRightTop.y * size, 0, size - 1));
+    //采样对应深度图的对应像素的深度值，并且作比较
+    float depthInTexture = hizTexture.mips[mipmapLevel][pixelLeftBottom].r;
+    if (isOpenGL)
+    {
+        if (pixelLeftBottom.x < pixelRightTop.x && pixelLeftBottom.y < pixelRightTop.y)
+        {
+            depthInTexture = max(max(depthInTexture, hizTexture.mips[mipmapLevel][pixelRightTop].r),
+                                 max(hizTexture.mips[mipmapLevel][int2(pixelLeftBottom.x, pixelRightTop.y)].r,
+                                     hizTexture.mips[mipmapLevel][int2(pixelRightTop.x, pixelLeftBottom.y)].r));
+        }
+        else if (pixelLeftBottom.x < pixelRightTop.x)
+            depthInTexture = max(depthInTexture,
+                                 hizTexture.mips[mipmapLevel][int2(pixelRightTop.x, pixelLeftBottom.y)].r);
+        else if (pixelLeftBottom.y < pixelRightTop.y)
+            depthInTexture = max(depthInTexture,
+                                 hizTexture.mips[mipmapLevel][int2(pixelLeftBottom.x, pixelRightTop.y)].r);
+
+        if (depthInTexture < depth)
+            return;
+    }
+    else
+    {
+        if (pixelLeftBottom.x < pixelRightTop.x && pixelLeftBottom.y < pixelRightTop.y)
+        {
+            depthInTexture = min(min(depthInTexture, hizTexture.mips[mipmapLevel][pixelRightTop].r),
+                                 min(hizTexture.mips[mipmapLevel][int2(pixelLeftBottom.x, pixelRightTop.y)].r,
+                                     hizTexture.mips[mipmapLevel][int2(pixelRightTop.x, pixelLeftBottom.y)].r));
+        }
+        else if (pixelLeftBottom.x < pixelRightTop.x)
+            depthInTexture = min(depthInTexture,
+                                 hizTexture.mips[mipmapLevel][int2(pixelRightTop.x, pixelLeftBottom.y)].r);
+        else if (pixelLeftBottom.y < pixelRightTop.y)
+            depthInTexture = min(depthInTexture,
+                                 hizTexture.mips[mipmapLevel][int2(pixelLeftBottom.x, pixelRightTop.y)].r);
+
+        if (depthInTexture > depth)
+            return;
+    }
+    #endif
+
+
+    LocalToWorldCulled.Append(m);
 }
 
 // TODO: 视椎剔除

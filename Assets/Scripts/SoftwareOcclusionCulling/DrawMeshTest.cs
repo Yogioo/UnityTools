@@ -1,17 +1,30 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
+using Sunset.SceneManagement;
 using Random = UnityEngine.Random;
 
+[RequireComponent(typeof(DepthTextureGenerator))]
 public class DrawMeshTest : MonoBehaviour
 {
     public GameObject TestGO;
+    public int DrawCount = 100;
+    public int Size = 100;
     public ComputeShader CullCompute;
+
     private Dictionary<int, RendererCall> rendererData = new Dictionary<int, RendererCall>();
+    private static DepthTextureGenerator depthGenerator;
+
+    private static bool isOpenGL;
+    private static Matrix4x4 vpMatrix;
+    private static Camera cam;
+    private static Vector4[] cameraPanels;
 
     struct CullData
     {
         public Vector3 center;
-        public Vector3 extent;
+        public Vector3 extents;
+        public Matrix4x4 local2World;
     }
 
     class RendererCall
@@ -20,7 +33,6 @@ public class DrawMeshTest : MonoBehaviour
         public Material instanceMaterial;
         public int subMeshIndex = 0;
         public List<Renderer> renders;
-        public ComputeBuffer localToWorldMatrixBuffer;
         public ComputeBuffer localToWorldMatrixBufferCulled;
         public ComputeBuffer cullDataBuffer;
         public ComputeBuffer argsBuffer;
@@ -29,7 +41,8 @@ public class DrawMeshTest : MonoBehaviour
 
         private List<Matrix4x4> local2World = new List<Matrix4x4>();
         private CullData[] cullData;
-        
+
+
         public RendererCall(Renderer render)
         {
             this.renders = new List<Renderer>() { render };
@@ -55,35 +68,7 @@ public class DrawMeshTest : MonoBehaviour
             if (instanceMesh != null)
                 subMeshIndex = Mathf.Clamp(subMeshIndex, 0, instanceMesh.subMeshCount - 1);
 
-            UpdateMatrixBuffer();
-
             UpdateArgsBuffer();
-        }
-
-        private void UpdateMatrixBuffer()
-        {
-            // Positions
-            if (localToWorldMatrixBuffer != null)
-                localToWorldMatrixBuffer.SetCounterValue(0);
-            // localToWorldMatrixBuffer.Release();
-            else
-                localToWorldMatrixBuffer = new ComputeBuffer(renders.Count, sizeof(float) * 4 * 4);
-
-
-            for (int i = 0; i < renders.Count; i++)
-            {
-                if (local2World.Count <= i)
-                {
-                    local2World.Add(this.renders[i].transform.localToWorldMatrix);
-                }
-                else
-                {
-                    local2World[i] = this.renders[i].transform.localToWorldMatrix;
-                }
-            }
-
-            localToWorldMatrixBuffer.SetData(local2World);
-            instanceMaterial.SetBuffer("localToWorldBuffer", localToWorldMatrixBuffer);
         }
 
         private void UpdateArgsBuffer()
@@ -112,7 +97,7 @@ public class DrawMeshTest : MonoBehaviour
             }
             else
             {
-                cullDataBuffer = new ComputeBuffer(this.renders.Count, sizeof(float) * 3 * 2);
+                cullDataBuffer = new ComputeBuffer(this.renders.Count, sizeof(float) * 3 * 2 + sizeof(float) * 4 * 4);
             }
 
             CullData[] data = new CullData[this.renders.Count];
@@ -121,9 +106,12 @@ public class DrawMeshTest : MonoBehaviour
                 data[i] = new CullData()
                 {
                     center = this.renders[i].bounds.center,
-                    extent = this.renders[i].bounds.extents
+                    extents = this.renders[i].bounds.extents,
+                    local2World = this.renders[i].localToWorldMatrix,
                 };
             }
+
+            cullDataBuffer.SetData(data);
         }
 
         public void Cull(ComputeShader cs)
@@ -143,22 +131,33 @@ public class DrawMeshTest : MonoBehaviour
             // TODO: 遮挡剔除
 
             var k = cs.FindKernel("CSMain");
-            cs.SetBuffer(k, "LocalToWorld", localToWorldMatrixBuffer);
-            cs.SetBuffer(k, "args", argsBuffer);
             cs.SetInt("Count", this.renders.Count);
 
+            cs.SetBool("isOpenGL", isOpenGL);
+            cs.SetMatrix("vpMatrix", vpMatrix);
+            cs.SetVectorArray("cameraPanels", cameraPanels);
+            cs.SetInt("depthTextureSize", depthGenerator.depthTextureSize);
+            
+            cs.SetTexture(k,"hizTexture", depthGenerator.depthTexture);
             cs.SetBuffer(k, "LocalToWorldCulled", localToWorldMatrixBufferCulled);
-            cs.SetBuffer(k,"CullDataBuffer", cullDataBuffer);
+            cs.SetBuffer(k, "CullDataBuffer", cullDataBuffer);
 
-            cs.Dispatch(k, this.renders.Count / 8, 1, 1);
+            int count = this.renders.Count / 8;
+            if (count < 1)
+            {
+                count = 1;
+            }
+
+            cs.Dispatch(k, count, 1, 1);
+            ComputeBuffer.CopyCount(localToWorldMatrixBufferCulled, argsBuffer, sizeof(uint) * 1);
+            instanceMaterial.SetBuffer("localToWorldBuffer", localToWorldMatrixBufferCulled);
+
             // Matrix4x4[] data = new Matrix4x4[this.renders.Count];
             // localToWorldMatrixBufferCulled.GetData(data);
         }
 
         public void Release()
         {
-            localToWorldMatrixBuffer?.Release();
-            localToWorldMatrixBuffer = null;
             argsBuffer?.Release();
             argsBuffer = null;
             localToWorldMatrixBufferCulled?.Release();
@@ -170,9 +169,14 @@ public class DrawMeshTest : MonoBehaviour
 
     private void OnEnable()
     {
-        for (int i = 0; i < 1000; i++)
+        cam = this.GetComponent<Camera>();
+        isOpenGL = cam.projectionMatrix.Equals(GL.GetGPUProjectionMatrix(Camera.main.projectionMatrix, false));
+
+        depthGenerator = GetComponent<DepthTextureGenerator>();
+
+        for (int i = 0; i < DrawCount; i++)
         {
-            GameObject.Instantiate(TestGO, Random.insideUnitSphere * 100, Quaternion.identity);
+            GameObject.Instantiate(TestGO, Random.insideUnitSphere * Size, Quaternion.identity);
         }
 
 
@@ -198,8 +202,41 @@ public class DrawMeshTest : MonoBehaviour
         UpdateBuffers();
     }
 
+#if UNITY_EDITOR
+    // Debug
+    public Rect DepthTexRect = new Rect(0, 0, 1920 / 2.0f, 1080 / 2.0f);
+    public bool isDisplayDepth = true;
+
+    private void OnGUI()
+    {
+        if (isDisplayDepth)
+        {
+            GUI.DrawTexture(DepthTexRect, depthGenerator.depthTexture);
+        }
+    }
+
+    public bool isDisplayGizmos = true;
+
+    private void OnDrawGizmos()
+    {
+        if (isDisplayGizmos)
+        {
+            foreach (var kv in this.rendererData)
+            {
+                foreach (var r in kv.Value.renders)
+                {
+                    Gizmos.matrix = r.localToWorldMatrix;
+                    Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
+                }
+            }
+        }
+    }
+#endif
+
     void Update()
     {
+        vpMatrix = GL.GetGPUProjectionMatrix(cam.projectionMatrix, false) * cam.worldToCameraMatrix;
+        cameraPanels = CheckExtent.GetFrustumPlane(cam);
         UpdateBuffers();
         // Render
         foreach (var call in this.rendererData)
@@ -215,7 +252,6 @@ public class DrawMeshTest : MonoBehaviour
         foreach (var call in this.rendererData)
         {
             call.Value.UpdateBuffers();
-
 
             call.Value.Cull(CullCompute);
         }

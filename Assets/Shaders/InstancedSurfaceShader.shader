@@ -1,4 +1,4 @@
-﻿Shader "Instanced/InstancedSurfaceShader"
+﻿Shader "Yogi/InstancedSurfaceShader"
 {
     Properties
     {
