@@ -38,7 +38,7 @@ public class DepthTextureGenerator : MonoBehaviour
         this.GetComponent<Camera>().depthTextureMode |= DepthTextureMode.Depth;
 
         m_depthTextureShaderID = Shader.PropertyToID("_CameraDepthTexture");
-
+        
         InitDepthTexture();
     }
 
@@ -62,8 +62,8 @@ public class DepthTextureGenerator : MonoBehaviour
         RenderTexture currentRenderTexture = null; //当前mipmapLevel对应的mipmap
         RenderTexture preRenderTexture = null; //上一层的mipmap，即mipmapLevel-1对应的mipmap
 
-        //如果当前的mipmap的宽高大于8，则计算下一层的mipmap
-        while (w > 8)
+        //如果当前的mipmap的宽高大于1，则计算下一层的mipmap
+        while (w > 1)
         {
             currentRenderTexture = RenderTexture.GetTemporary(w, w, 0, m_depthTextureFormat);
             currentRenderTexture.filterMode = FilterMode.Point;
@@ -85,7 +85,7 @@ public class DepthTextureGenerator : MonoBehaviour
             w /= 2;
             mipmapLevel++;
         }
-
+        
         RenderTexture.ReleaseTemporary(preRenderTexture);
     }
 

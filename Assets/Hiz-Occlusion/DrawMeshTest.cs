@@ -1,24 +1,28 @@
-using System;
 using UnityEngine;
 using System.Collections.Generic;
 using Sunset.SceneManagement;
+using UnityEngine.Profiling;
 using Random = UnityEngine.Random;
 
 [RequireComponent(typeof(DepthTextureGenerator))]
 public class DrawMeshTest : MonoBehaviour
 {
+    public bool IsSpawnTestGO = true;
+    public bool IsDraw = false;
     public GameObject TestGO;
     public int DrawCount = 100;
     public int Size = 100;
     public ComputeShader CullCompute;
 
-    private Dictionary<int, RendererCall> rendererData = new Dictionary<int, RendererCall>();
+    public Dictionary<int, RendererCall> rendererData = new Dictionary<int, RendererCall>();
     private static DepthTextureGenerator depthGenerator;
 
     private static bool isOpenGL;
     private static Matrix4x4 vpMatrix;
     private static Camera cam;
     private static Vector4[] cameraPanels;
+
+    public Camera DisplayCam;
 
     struct CullData
     {
@@ -27,7 +31,8 @@ public class DrawMeshTest : MonoBehaviour
         public Matrix4x4 local2World;
     }
 
-    class RendererCall
+    [System.Serializable]
+    public class RendererCall
     {
         public Mesh instanceMesh;
         public Material instanceMaterial;
@@ -38,39 +43,41 @@ public class DrawMeshTest : MonoBehaviour
         public ComputeBuffer argsBuffer;
         private uint[] args = new uint[5] { 0, 0, 0, 0, 0 };
         public bool isNeedUpdateBuffer = false;
+        public MaterialPropertyBlock materialBlock;
 
-        private List<Matrix4x4> local2World = new List<Matrix4x4>();
-        private CullData[] cullData;
-
+        private List<CullData> cullData;
 
         public RendererCall(Renderer render)
         {
             this.renders = new List<Renderer>() { render };
             this.argsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
-            this.instanceMaterial = render.material;
-            this.instanceMesh = render.GetComponent<MeshFilter>().mesh;
+            this.instanceMaterial = render.sharedMaterial;
+            render.sharedMaterial.enableInstancing = true;
+            this.instanceMesh = render.GetComponent<MeshFilter>().sharedMesh;
             this.isNeedUpdateBuffer = true;
-        }
-
-        public void Add(Renderer render)
-        {
-            this.renders.Add(render);
-            isNeedUpdateBuffer = true;
-        }
-
-        public void UpdateBuffers()
-        {
-            if (!isNeedUpdateBuffer)
-                return;
-            isNeedUpdateBuffer = false;
-
+            render.enabled = false;
+            materialBlock = new MaterialPropertyBlock();
+            
             // Ensure submesh index is in range
             if (instanceMesh != null)
                 subMeshIndex = Mathf.Clamp(subMeshIndex, 0, instanceMesh.subMeshCount - 1);
 
-            UpdateArgsBuffer();
+            cullData = new List<CullData>() { new CullData() };
         }
 
+        public void AddStatic(Renderer render)
+        {
+            render.enabled = false;
+            this.renders.Add(render);
+            isNeedUpdateBuffer = true;
+
+            cullData.Add(new CullData());
+        }
+        public void UpdateStaticCullData()
+        {
+            UpdateArgsBuffer();
+            UpdateCullDataBuffer();
+        }
         private void UpdateArgsBuffer()
         {
             // Indirect args
@@ -88,7 +95,6 @@ public class DrawMeshTest : MonoBehaviour
 
             argsBuffer.SetData(args);
         }
-
         private void UpdateCullDataBuffer()
         {
             if (cullDataBuffer != null)
@@ -100,22 +106,24 @@ public class DrawMeshTest : MonoBehaviour
                 cullDataBuffer = new ComputeBuffer(this.renders.Count, sizeof(float) * 3 * 2 + sizeof(float) * 4 * 4);
             }
 
-            CullData[] data = new CullData[this.renders.Count];
             for (var i = 0; i < this.renders.Count; i++)
             {
-                data[i] = new CullData()
-                {
-                    center = this.renders[i].bounds.center,
-                    extents = this.renders[i].bounds.extents,
-                    local2World = this.renders[i].localToWorldMatrix,
-                };
+                var render = this.renders[i];
+                var bounds = this.renders[i].bounds;
+                var data = cullData[i];
+                data.center = bounds.center;
+                data.extents = bounds.extents;
+                data.local2World = render.localToWorldMatrix;
+                cullData[i] = data;
             }
 
-            cullDataBuffer.SetData(data);
+            cullDataBuffer.SetData(cullData);
         }
 
         public void Cull(ComputeShader cs)
         {
+            Profiler.BeginSample("Setup localToWorldMatrixBufferCulled");
+
             if (localToWorldMatrixBufferCulled != null)
             {
                 localToWorldMatrixBufferCulled.SetCounterValue(0);
@@ -125,10 +133,7 @@ public class DrawMeshTest : MonoBehaviour
                 localToWorldMatrixBufferCulled =
                     new ComputeBuffer(this.renders.Count, sizeof(float) * 4 * 4, ComputeBufferType.Append);
             }
-
-            UpdateCullDataBuffer();
-            // TODO: 视椎剔除
-            // TODO: 遮挡剔除
+            Profiler.EndSample();
 
             var k = cs.FindKernel("CSMain");
             cs.SetInt("Count", this.renders.Count);
@@ -137,20 +142,17 @@ public class DrawMeshTest : MonoBehaviour
             cs.SetMatrix("vpMatrix", vpMatrix);
             cs.SetVectorArray("cameraPanels", cameraPanels);
             cs.SetInt("depthTextureSize", depthGenerator.depthTextureSize);
-            
-            cs.SetTexture(k,"hizTexture", depthGenerator.depthTexture);
+
+            cs.SetTexture(k, "hizTexture", depthGenerator.depthTexture);
             cs.SetBuffer(k, "LocalToWorldCulled", localToWorldMatrixBufferCulled);
             cs.SetBuffer(k, "CullDataBuffer", cullDataBuffer);
 
-            int count = this.renders.Count / 8;
-            if (count < 1)
-            {
-                count = 1;
-            }
+            cs.SetInt("SpawnCount", this.renders.Count - 1);
 
+            int count = this.renders.Count / 8 + 1;
             cs.Dispatch(k, count, 1, 1);
             ComputeBuffer.CopyCount(localToWorldMatrixBufferCulled, argsBuffer, sizeof(uint) * 1);
-            instanceMaterial.SetBuffer("localToWorldBuffer", localToWorldMatrixBufferCulled);
+            this.materialBlock.SetBuffer("localToWorldBuffer", localToWorldMatrixBufferCulled);
 
             // Matrix4x4[] data = new Matrix4x4[this.renders.Count];
             // localToWorldMatrixBufferCulled.GetData(data);
@@ -167,17 +169,47 @@ public class DrawMeshTest : MonoBehaviour
         }
     }
 
+    public Shader TargetShader;
+
+    private void SetAllRendererToTargetMaterial()
+    {
+        var allRenderer = GameObject.FindObjectsOfType<Renderer>();
+        foreach (var r in allRenderer)
+        {
+            Material[] mats = r.materials;
+            for (var i = 0; i < mats.Length; i++)
+            {
+                mats[i].shader = TargetShader;
+            }
+
+            r.materials = mats;
+            r.receiveShadows = false;
+        }
+    }
+
     private void OnEnable()
     {
+        Random.InitState(0);
+
+        if (IsSpawnTestGO)
+        {
+            for (int i = 0; i < DrawCount; i++)
+            {
+                GameObject.Instantiate(TestGO, Random.insideUnitSphere * Size, Quaternion.identity);
+            }
+        }
+
+
+        if (!IsDraw)
+        {
+            return;
+        }
+        // SetAllRendererToTargetMaterial();
+
+        EnableKey();
         cam = this.GetComponent<Camera>();
         isOpenGL = cam.projectionMatrix.Equals(GL.GetGPUProjectionMatrix(Camera.main.projectionMatrix, false));
-
         depthGenerator = GetComponent<DepthTextureGenerator>();
-
-        for (int i = 0; i < DrawCount; i++)
-        {
-            GameObject.Instantiate(TestGO, Random.insideUnitSphere * Size, Quaternion.identity);
-        }
 
 
         rendererData.Clear();
@@ -185,16 +217,32 @@ public class DrawMeshTest : MonoBehaviour
         for (var i = 0; i < renderObj.Length; i++)
         {
             var targetObj = renderObj[i];
-            var id = targetObj.GetComponent<MeshFilter>().sharedMesh.GetInstanceID();
+            var id = targetObj.GetComponent<MeshFilter>().sharedMesh.GetInstanceID() +
+                     targetObj.sharedMaterial.GetInstanceID();
             if (rendererData.TryGetValue(id, out var rendererCall))
             {
-                rendererCall.Add(targetObj);
+                rendererCall.AddStatic(targetObj);
             }
             else
             {
                 rendererData.Add(id, new RendererCall(targetObj));
             }
         }
+        
+        foreach (var cell in rendererData)
+        {
+            cell.Value.UpdateStaticCullData();
+        }
+    }
+
+    private void EnableKey()
+    {
+        Shader.EnableKeyword("HiZCull");
+    }
+
+    private void DisableKey()
+    {
+        Shader.DisableKeyword("HiZCull");
     }
 
     void Start()
@@ -233,32 +281,58 @@ public class DrawMeshTest : MonoBehaviour
     }
 #endif
 
+    Bounds drawBounds = new Bounds(Vector3.zero, Vector3.one * 10000);
+
     void Update()
     {
+        if (!IsDraw)
+        {
+            return;
+        }
+
+        Profiler.BeginSample("Hiz Draw Mesh Update");
+
+        Profiler.BeginSample("Get Camera VP Matrix");
         vpMatrix = GL.GetGPUProjectionMatrix(cam.projectionMatrix, false) * cam.worldToCameraMatrix;
+        Profiler.EndSample();
+        Profiler.BeginSample("Get Camera FrustumPlanes");
         cameraPanels = CheckExtent.GetFrustumPlane(cam);
+        Profiler.EndSample();
+        Profiler.BeginSample("Update All Buffers");
         UpdateBuffers();
+        Profiler.EndSample();
+
+        Profiler.BeginSample("Draw All");
         // Render
         foreach (var call in this.rendererData)
         {
-            var data = call.Value;
-            Graphics.DrawMeshInstancedIndirect(data.instanceMesh, data.subMeshIndex, data.instanceMaterial,
-                new Bounds(Vector3.zero, new Vector3(100.0f, 100.0f, 100.0f)), data.argsBuffer);
+            Profiler.BeginSample("DrawSingle");
+            var renderer = call.Value.renders[0];
+            Graphics.DrawMeshInstancedIndirect(call.Value.instanceMesh, call.Value.subMeshIndex, call.Value.instanceMaterial, drawBounds
+                , call.Value.argsBuffer,
+                0, call.Value.materialBlock, renderer.shadowCastingMode, renderer.receiveShadows,
+                renderer.gameObject.layer, DisplayCam);
+            Profiler.EndSample();
         }
+
+        Profiler.EndSample();
+
+        Profiler.EndSample();
     }
 
     void UpdateBuffers()
     {
         foreach (var call in this.rendererData)
         {
-            call.Value.UpdateBuffers();
-
+            Profiler.BeginSample("Cull Single");
             call.Value.Cull(CullCompute);
-        }
+            Profiler.EndSample();
+        }        
     }
 
     void OnDisable()
     {
+        DisableKey();
         foreach (var call in this.rendererData)
         {
             call.Value.Release();

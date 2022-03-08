@@ -1,4 +1,4 @@
-﻿Shader "Yogi/InstancedShader"
+﻿Shader "Yogi/TestShader"
 {
     Properties
     {
@@ -8,11 +8,9 @@
     {
         Pass
         {
-            Tags
-            {
-                "LightMode"="ForwardBase"
-            }
-
+            ZTest On
+            ZWrite On
+            
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -25,9 +23,6 @@
 
             sampler2D _MainTex;
 
-            #if SHADER_TARGET >= 45
-            StructuredBuffer<float4x4> localToWorldBuffer;
-            #endif
 
             struct v2f
             {
@@ -48,12 +43,7 @@
 
             v2f vert(appdata_full v, uint instanceID : SV_InstanceID)
             {
-                #if SHADER_TARGET >= 45
-                float4x4 data = localToWorldBuffer[instanceID];
-                #else
-                float4x4 data = 0;
-                #endif
-
+                float4x4 data = unity_ObjectToWorld;
                 // float rotation = data.w * data.w * _Time.x * 0.5f;
                 // rotate2D(data.xz, rotation);
 

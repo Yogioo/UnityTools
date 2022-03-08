@@ -457,38 +457,31 @@ namespace Sunset.SceneManagement
         private static Vector4[] cameraPanels;
 
         //检测物体是否在摄像机范围内
-        public static bool CheckBoundIsInCamera(Camera p_Camera, ref Vector3[] p_BoundVerts, out bool p_IsAllInSide)
+        public static bool CheckBoundIsInCamera(Camera p_Camera, ref Vector3[] p_BoundVerts)
         {
-            p_IsAllInSide = false;
             if (lastFrame != Time.frameCount)
             {
                 lastFrame = Time.frameCount;
                 cameraPanels = GetFrustumPlane(p_Camera);
                 //worldToProjectionMatrix = p_Camera.projectionMatrix * p_Camera.worldToCameraMatrix;
             }
-            int insideCount = 0;
-            for (int j = 0; j < 8; j++)
+
+            for (int i = 0; i < 6; i++)
             {
-                int inCameraCount = 0;
-                for (int i = 0; i < 6; i++)
+                for (int j = 0; j < 8; j++)
                 {
                     if (!IsOutsideThePlane(cameraPanels[i], p_BoundVerts[j]))
                     {
-                        inCameraCount++;
+                        break;
+                    }
+
+                    if (j == 7)
+                    {
+                        return false;
                     }
                 }
-
-                if (inCameraCount == 6)
-                {
-                    insideCount++;
-                }
             }
-
-            if (insideCount == 8)
-            {
-                p_IsAllInSide = true;
-            }
-            return insideCount > 0;
+            return true;
         }
 
         /// <summary>
@@ -514,7 +507,6 @@ namespace Sunset.SceneManagement
             Vector3 normal = Vector3.Normalize(Vector3.Cross(b - a, c - a));
             return GetPlane(normal, a);
         }
-
         /// <summary>
         /// 获取视锥体远平面的四个点
         /// </summary>

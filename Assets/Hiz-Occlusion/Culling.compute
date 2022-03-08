@@ -21,7 +21,10 @@ int depthTextureSize;
 
 Texture2D hizTexture; //hiz纹理
 
-// #define S
+int SpawnCount;
+
+#define FrustumCull
+#define HiZCull
 // TODO:获得包围盒信息作用于视椎裁剪
 // TODO:获得上一帧深度图作用于深度剔除
 
@@ -30,7 +33,7 @@ AppendStructuredBuffer<float4x4> LocalToWorldCulled;
 
 bool IsOutsideThePlane(float4 plane, float3 pointPosition)
 {
-    if (dot(plane, pointPosition) + plane.w > 0)
+    if (dot(plane.xyz, pointPosition) + plane.w > 0)
         return true;
     return false;
 }
@@ -38,8 +41,10 @@ bool IsOutsideThePlane(float4 plane, float3 pointPosition)
 [numthreads(8,1,1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float4x4 m = CullDataBuffer[id.x].localToWorld;
-    float4x4 mvp = mul(vpMatrix, m);
+    if (id.x > SpawnCount)
+        return;
+
+    float4x4 localToWorld = CullDataBuffer[id.x].localToWorld;
 
     float3 center = CullDataBuffer[id.x].center;
     float3 extens = CullDataBuffer[id.x].extents;
@@ -57,27 +62,28 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     BoundsVerts[6] = float3(minBounds.x, maxBounds.y, minBounds.z);
     BoundsVerts[7] = float3(minBounds.x, minBounds.y, maxBounds.z);
 
-    int insideCount = 0;
-    for (int j = 0; j < 8; j++)
+    #ifdef FrustumCull
+    for (int i = 0; i < 6; i++)
     {
-        int inCameraCount = 0;
-        for (int i = 0; i < 6; i++)
+        for (int j = 0; j < 8; j++)
         {
             if (!IsOutsideThePlane(cameraPanels[i], BoundsVerts[j]))
             {
-                inCameraCount++;
+                break;
+            }
+            if (j == 7)
+            {
+                return;
             }
         }
+    }
+    #endif
 
-        if (inCameraCount == 6)
-        {
-            insideCount++;
-            break;
-        }
-
+    for (int j = 0; j < 8; j++)
+    {
         // 计算八个顶点的ClipSpace坐标 用于深度剔除
-        float4 clipSpace = mul(vpMatrix, float4(center.xyz + BoundsVerts[j].xyz, 1.0f));
-        //计算该草ndc下的AABB
+        float4 clipSpace = mul(vpMatrix, float4(BoundsVerts[j].xyz, 1.0f));
+        //计算该ndc下的AABB
         float3 ndc = clipSpace.xyz / clipSpace.w;
         minX = min(minX, ndc.x);
         minY = min(minY, ndc.y);
@@ -85,17 +91,8 @@ void CSMain(uint3 id : SV_DispatchThreadID)
         maxX = max(maxX, ndc.x);
         maxY = max(maxY, ndc.y);
         maxZ = max(maxZ, ndc.z);
-        // if (minX > ndc.x) minX = ndc.x;
-        // if (minY > ndc.y) minY = ndc.y;
-        // if (minZ > ndc.z) minZ = ndc.z;
-        // if (maxX < ndc.x) maxX = ndc.x;
-        // if (maxY < ndc.y) maxY = ndc.y;
-        // if (maxZ < ndc.z) maxZ = ndc.z;
     }
-    if (insideCount <= 0)
-    {
-        return;
-    }
+
 
     // float4 c = mul(mvp, float4(center,1.0f));
     // c /= c.w;
@@ -107,17 +104,17 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     // maxZ = c.z + 0.1f;
 
     //-------------------------------------------------------遮挡剔除-------------------------------------------------------
-    #ifdef S
+    #ifdef HiZCull
     //ndc的AABB的左下角和右上角的uv坐标，ndc的-1到1转换为uv的0到1
     float2 uvLeftBottom = float2(minX, minY) * 0.5f + 0.5f;
     float2 uvRightTop = float2(maxX, maxY) * 0.5f + 0.5f;
     //DirextX下NDC的z值即为深度（因为MVP变换后是反转过的，所以要取最大的那个值）
     float depth = maxZ;
     // //如果是OpenGL,首先要取最小的那个z值，然后需要 *0.5+0.5 转换到 0-1 的深度值
-    // if (isOpenGL) {
-    // depth = minZ;
-    // depth = depth * 0.5f + 0.5f;
-    // }
+    if (isOpenGL) {
+        depth = minZ;
+        depth = depth * 0.5f + 0.5f;
+    }
     //计算应该读取哪层mipmap
     uint mipmapLevel = (uint)clamp(log2(max(maxX - minX, maxY - minY) / 2 * depthTextureSize), 0,
                                    log2(depthTextureSize) - 4);
@@ -168,7 +165,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     #endif
 
 
-    LocalToWorldCulled.Append(m);
+    LocalToWorldCulled.Append(localToWorld);
 }
 
 // TODO: 视椎剔除
