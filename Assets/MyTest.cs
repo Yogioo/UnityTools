@@ -129,7 +129,6 @@ public class MyTest : MonoBehaviour
     }
     
     */
-
     
     /* ----------------------------------------------Shadow Cull-------------------------------------------------------
     public Renderer t;
@@ -260,4 +259,7 @@ public class MyTest : MonoBehaviour
         return enter > 0;
     }
     */
+    
+    
+    
 }

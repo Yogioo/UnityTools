@@ -1,12 +1,17 @@
 // Get Depth Texture & Generate Mipmap
 
 // Reference By https://zhuanlan.zhihu.com/p/396979267
+
 using UnityEngine;
 
 [RequireComponent(typeof(Camera))]
 public class DepthTextureGenerator : MonoBehaviour
 {
     public Shader depthTextureShader;
+
+
+    public bool IsDrawOccluders = false;
+    public LayerMask OccluderLayer;
 
     RenderTexture m_depthTexture;
 
@@ -28,9 +33,10 @@ public class DepthTextureGenerator : MonoBehaviour
     }
 
     Material m_depthTextureMaterial;
-    const RenderTextureFormat m_depthTextureFormat = RenderTextureFormat.RHalf; 
+    const RenderTextureFormat m_depthTextureFormat = RenderTextureFormat.RHalf;
 
     int m_depthTextureShaderID;
+
 
     void OnEnable()
     {
@@ -38,19 +44,24 @@ public class DepthTextureGenerator : MonoBehaviour
         this.GetComponent<Camera>().depthTextureMode |= DepthTextureMode.Depth;
 
         m_depthTextureShaderID = Shader.PropertyToID("_CameraDepthTexture");
-        
+
         InitDepthTexture();
     }
 
+    public void AddOccluder(Renderer p_Occluder)
+    {
+        
+    }
+    
     void InitDepthTexture()
     {
         if (m_depthTexture != null) return;
         m_depthTexture = new RenderTexture(depthTextureSize, depthTextureSize, 0, m_depthTextureFormat)
-            {
-                autoGenerateMips = false,
-                useMipMap = true,
-                filterMode = FilterMode.Point
-            };
+        {
+            autoGenerateMips = false,
+            useMipMap = true,
+            filterMode = FilterMode.Point
+        };
         m_depthTexture.Create();
     }
 
@@ -69,8 +80,16 @@ public class DepthTextureGenerator : MonoBehaviour
             currentRenderTexture.filterMode = FilterMode.Point;
             if (preRenderTexture == null)
             {
-                //Mipmap[0]即copy原始的深度图
-                Graphics.Blit(Shader.GetGlobalTexture(m_depthTextureShaderID), currentRenderTexture);
+                if (this.IsDrawOccluders)
+                {
+                    // 对所有Occluder一次绘制
+                    Graphics.Blit(Shader.GetGlobalTexture(m_depthTextureShaderID), currentRenderTexture);
+                }
+                else
+                {
+                    //Mipmap[0]即copy原始的深度图
+                    Graphics.Blit(Shader.GetGlobalTexture(m_depthTextureShaderID), currentRenderTexture);
+                }
             }
             else
             {
@@ -85,7 +104,7 @@ public class DepthTextureGenerator : MonoBehaviour
             w /= 2;
             mipmapLevel++;
         }
-        
+
         RenderTexture.ReleaseTemporary(preRenderTexture);
     }
 
