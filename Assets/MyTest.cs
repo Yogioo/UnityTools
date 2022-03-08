@@ -1,7 +1,4 @@
-using System;
-using System.Data;
 using Sunset.SceneManagement;
-using UnityEditor;
 using UnityEngine;
 
 public class MyTest : MonoBehaviour
@@ -133,6 +130,8 @@ public class MyTest : MonoBehaviour
     
     */
 
+    
+    /* ----------------------------------------------Shadow Cull-------------------------------------------------------
     public Renderer t;
     public Light l;
     private Camera cam;
@@ -260,4 +259,5 @@ public class MyTest : MonoBehaviour
         enter = ndot / vdot;
         return enter > 0;
     }
+    */
 }
