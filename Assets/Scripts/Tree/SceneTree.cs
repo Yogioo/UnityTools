@@ -10,34 +10,29 @@ namespace Sunset.SceneManagement
         public static SceneTree Instance => _Instance;
         private static SceneTree _Instance;
 
-        [Header("是否随机生成Cube(测试)")]
-        public bool IsDebugMode = true;
-        [Header("随机种子(测试)")]
-        public string Seed;
-        [Header("随机位置(测试)")]
-        public float randomPos = 100;
-        [Header("随机缩放(测试)")]
-        public float randomScale = 5;
-        [Header("随机的生成数量(测试)")]
-        public uint SpawnCount = 50;
+        [Header("是否随机生成Cube(测试)")] public bool IsDebugMode = true;
+        [Header("随机种子(测试)")] public string Seed;
+        [Header("随机位置(测试)")] public float randomPos = 100;
+        [Header("随机缩放(测试)")] public float randomScale = 5;
+        [Header("随机的生成数量(测试)")] public uint SpawnCount = 50;
 
-        [Header("颗粒度,代表了一个Cell内物体数量")]
-        public uint MaxCellCount = 10;
-        [Header("颗粒度,代表了一个Cell最小大小")]
-        public float MinCell = 20;
-        [Header("强制显示距离")]
-        public float MinDisplayDistance = 25;
-        [Header("是否绘制Gizmos")]
-        public bool IsDrawGizmos = false;
+        [Header("颗粒度,代表了一个Cell内物体数量")] public uint MaxCellCount = 10;
+        [Header("颗粒度,代表了一个Cell最小大小")] public float MinCell = 20;
+        [Header("强制显示距离")] public float MinDisplayDistance = 25;
+        [Header("是否绘制Gizmos")] public bool IsDrawGizmos = false;
 
         // 主摄像机(用于剔除的)
         private Camera m_Cam;
+
         // 初始化四叉树是否已完成
         private bool m_IsInitOver = false;
+
         // 场景中所有需要剔除的物体
         private List<ItemBase> AllItems;
+
         // 四叉树的Root节点
         private SceneDetectorBase Root;
+
         // 已经激活显示的节点
         private List<SceneDetectorBase> ActiveTrans;
 
@@ -60,7 +55,8 @@ namespace Sunset.SceneManagement
                     var cubeTrans = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     var randomPosition = Random.insideUnitSphere * randomPos + new Vector3(1, 0, 1) * randomPos;
                     randomPosition.y = 0;
-                    cubeTrans.transform.SetPositionAndRotation(randomPosition, Quaternion.Euler(Random.insideUnitSphere * 360));
+                    cubeTrans.transform.SetPositionAndRotation(randomPosition,
+                        Quaternion.Euler(Random.insideUnitSphere * 360));
                     cubeTrans.transform.localScale = Random.value * randomScale * Vector3.one;
 
 
@@ -68,9 +64,9 @@ namespace Sunset.SceneManagement
                     bounds.center = cubeTrans.transform.position;
                     this.AddItem(cubeTrans.gameObject, bounds);
                 }
+
                 Init();
             }
-
         }
 
         void Update()
@@ -111,10 +107,7 @@ namespace Sunset.SceneManagement
         {
             Vector3 pos = m_Cam.transform.position;
 
-            this.AllItems.ForEach(x =>
-            {
-                x.Init();
-            });
+            this.AllItems.ForEach(x => { x.Init(); });
 
             Split();
             m_Cam.transform.position = pos;
@@ -144,8 +137,12 @@ namespace Sunset.SceneManagement
 
             if (p_Parent == null)
             {
-                float minX = float.MaxValue, minZ = float.MaxValue, minY = float.MaxValue,
-                    maxX = float.MinValue, maxZ = float.MinValue, maxY = float.MinValue;
+                float minX = float.MaxValue,
+                    minZ = float.MaxValue,
+                    minY = float.MaxValue,
+                    maxX = float.MinValue,
+                    maxZ = float.MinValue,
+                    maxY = float.MinValue;
 
                 p_Cubes.ForEach(x =>
                 {
@@ -240,10 +237,7 @@ namespace Sunset.SceneManagement
                 if (x.ItemData.Count > MaxCellCount && x.Bounds.size.x > MinCell) // 格子内颗粒度太小的不再细分 过小的不再细分
                 {
                     var needSplitData = new List<ItemBase>();
-                    x.ItemData.ForEach(tmp =>
-                    {
-                        needSplitData.Add(tmp);
-                    });
+                    x.ItemData.ForEach(tmp => { needSplitData.Add(tmp); });
                     x.ClearObj();
                     Split(needSplitData, x);
                 }
@@ -268,10 +262,7 @@ namespace Sunset.SceneManagement
             if (!ActiveTrans.Contains(p_Cell))
             {
                 ActiveTrans.Add(p_Cell);
-                p_Cell.ItemData.ForEach(x =>
-                {
-                    x.ActiveCount++;
-                });
+                p_Cell.ItemData.ForEach(x => { x.ActiveCount++; });
             }
         }
 
@@ -281,6 +272,7 @@ namespace Sunset.SceneManagement
             {
                 return;
             }
+
             if (Application.isPlaying && m_IsInitOver)
             {
                 OnDrawGizmos(Root, Color.white);
@@ -316,11 +308,11 @@ namespace Sunset.SceneManagement
                 {
                     childColor = p_Cell.DebugColor;
                 }
+
                 OnDrawGizmos(x as SceneDetectorBase, childColor);
             });
 
             Gizmos.color = origin;
-
         }
 
         private void OnShow(SceneDetectorBase p_Cell)
@@ -330,17 +322,9 @@ namespace Sunset.SceneManagement
             for (var i = 0; i < p_Cell.Child.Count; i++)
             {
                 var child = p_Cell.Child[i];
-                if (child.IsDetected(m_Cam, out var isAllInside))
+                if (child.IsDetected(m_Cam))
                 {
-                    if (isAllInside)
-                    {
-                        //TODO: 递归显示所有子类
-                        ShowAllChildren(child);
-                    }
-                    else
-                    {
-                        OnShow(child);
-                    }
+                    ShowAllChildren(child);
                 }
             }
         }
@@ -361,7 +345,7 @@ namespace Sunset.SceneManagement
             for (var i = 0; i < ActiveTrans.Count; i++)
             {
                 var cell = ActiveTrans[i];
-                if (!cell.IsDetected(m_Cam, out _) && Vector3.Magnitude(cell.Bounds.center - camerePos) > MinDisplayDistance)
+                if (!cell.IsDetected(m_Cam) && Vector3.Magnitude(cell.Bounds.center - camerePos) > MinDisplayDistance)
                 {
                     cell.ItemData.ForEach(itemPack =>
                     {
@@ -381,7 +365,7 @@ namespace Sunset.SceneManagement
 
     public interface IDetector
     {
-        bool IsDetected(Camera mainCam, out bool p_IsAllInside);
+        bool IsDetected(Camera mainCam);
         Bounds Bounds { get; }
     }
 
@@ -416,10 +400,11 @@ namespace Sunset.SceneManagement
 
         private Bounds _Bounds;
         private Vector3[] BoundsVerts;
-        public bool IsDetected(Camera mainCam, out bool p_IsAllInside)
+
+        public bool IsDetected(Camera mainCam)
         {
             Profiler.BeginSample("SceneTree.CheckBoundIsInCamera");
-            var result = CheckExtent.CheckBoundIsInCamera(mainCam, ref BoundsVerts, out p_IsAllInside);
+            var result = CheckExtent.CheckBoundIsInCamera(mainCam, ref BoundsVerts);
             Profiler.EndSample();
             return result;
         }
@@ -481,6 +466,7 @@ namespace Sunset.SceneManagement
                     }
                 }
             }
+
             return true;
         }
 
@@ -507,6 +493,7 @@ namespace Sunset.SceneManagement
             Vector3 normal = Vector3.Normalize(Vector3.Cross(b - a, c - a));
             return GetPlane(normal, a);
         }
+
         /// <summary>
         /// 获取视锥体远平面的四个点
         /// </summary>
@@ -523,12 +510,13 @@ namespace Sunset.SceneManagement
             Vector3 farCenterPoint = transform.position + distance * transform.forward;
             Vector3 up = upLen * transform.up;
             Vector3 right = rightLen * transform.right;
-            points[0] = farCenterPoint - up - right;//left-bottom
-            points[1] = farCenterPoint - up + right;//right-bottom
-            points[2] = farCenterPoint + up - right;//left-up
-            points[3] = farCenterPoint + up + right;//right-up
+            points[0] = farCenterPoint - up - right; //left-bottom
+            points[1] = farCenterPoint - up + right; //right-bottom
+            points[2] = farCenterPoint + up - right; //left-up
+            points[3] = farCenterPoint + up + right; //right-up
             return points;
         }
+
         /// <summary>
         /// 获取视锥体的六个平面
         /// </summary>
@@ -541,14 +529,16 @@ namespace Sunset.SceneManagement
             Vector3 cameraPosition = transform.position;
             Vector3[] points = GetCameraFarClipPlanePoint(camera);
             //顺时针
-            planes[0] = GetPlane(cameraPosition, points[0], points[2]);//left
-            planes[1] = GetPlane(cameraPosition, points[3], points[1]);//right
-            planes[2] = GetPlane(cameraPosition, points[1], points[0]);//bottom
-            planes[3] = GetPlane(cameraPosition, points[2], points[3]);//up
-            planes[4] = GetPlane(-transform.forward, transform.position + transform.forward * camera.nearClipPlane);//near
-            planes[5] = GetPlane(transform.forward, transform.position + transform.forward * camera.farClipPlane);//far
+            planes[0] = GetPlane(cameraPosition, points[0], points[2]); //left
+            planes[1] = GetPlane(cameraPosition, points[3], points[1]); //right
+            planes[2] = GetPlane(cameraPosition, points[1], points[0]); //bottom
+            planes[3] = GetPlane(cameraPosition, points[2], points[3]); //up
+            planes[4] = GetPlane(-transform.forward,
+                transform.position + transform.forward * camera.nearClipPlane); //near
+            planes[5] = GetPlane(transform.forward, transform.position + transform.forward * camera.farClipPlane); //far
             return planes;
         }
+
         /// <summary>
         /// 判断点是否在平面正面或背面
         /// </summary>
