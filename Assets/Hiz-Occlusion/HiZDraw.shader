@@ -10,12 +10,6 @@ Shader "Yogi/HiZDraw"
     {
         Pass
         {
-
-            Tags
-            {
-                "LightMode"="ForwardBase"
-            }
-
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -95,7 +89,7 @@ Shader "Yogi/HiZDraw"
                 "LightMode" = "ShadowCaster"
             }
 
-            ZWrite On ZTest LEqual Cull Off
+            ZWrite On ZTest LEqual Cull Back
 
             CGPROGRAM
             #pragma vertex vert

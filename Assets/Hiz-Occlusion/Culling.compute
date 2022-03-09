@@ -43,7 +43,6 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     float3 center = CullDataBuffer[id.x].center;
     float3 extens = CullDataBuffer[id.x].extents;
 
-    float minX = 1, minY = 1, minZ = 1, maxX = -1, maxY = -1, maxZ = -1; //NDC下新的的AABB各个参数
 
     //-------------------------------------------------------视椎剔除-------------------------------------------------------
     float3 BoundsVerts[8];
@@ -56,6 +55,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
     //-------------------------------------------------------遮挡剔除-------------------------------------------------------
     #ifdef HiZCull
+    float minX = 1, minY = 1, minZ = 1, maxX = -1, maxY = -1, maxZ = -1; //NDC下新的的AABB各个参数
     for (int j = 0; j < 8; j++)
     {
         // 计算八个顶点的ClipSpace坐标 用于深度剔除
