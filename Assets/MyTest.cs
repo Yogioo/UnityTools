@@ -25,7 +25,7 @@ public class MyTest : MonoBehaviour
         BoundsVerts[6] = new Vector3(min.x, max.y, min.z);
         BoundsVerts[7] = new Vector3(min.x, min.y, max.z);
 
-        r.enabled = CheckExtent.CheckBoundIsInCamera(Camera.main, ref BoundsVerts, out _);
+        r.enabled = CheckExtent.CheckBoundIsInCamera(Camera.main, ref BoundsVerts);
     }
 
     float BoxIntersect(Vector3 extent, Matrix4x4 boxLocalToWorld, Vector3 position, Vector4[] planes)

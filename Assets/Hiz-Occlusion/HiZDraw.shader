@@ -95,7 +95,7 @@ Shader "Yogi/HiZDraw"
                 "LightMode" = "ShadowCaster"
             }
 
-            ZWrite On ZTest LEqual Cull Off
+            ZWrite On ZTest LEqual Cull Back
 
             CGPROGRAM
             #pragma vertex vert
