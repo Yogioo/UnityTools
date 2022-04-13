@@ -289,7 +289,7 @@ public class DrawMeshTest : MonoBehaviour
         {
             return;
         }
-
+        
         Profiler.BeginSample("Hiz Draw Mesh Update");
 
         Profiler.BeginSample("Get Camera VP Matrix");

@@ -1,4 +1,5 @@
 ﻿#pragma kernel CSMain
+#include "SampleCulling.hlsl"
 
 struct CullData
 {
@@ -31,13 +32,6 @@ int SpawnCount;
 // Output
 AppendStructuredBuffer<float4x4> LocalToWorldCulled;
 
-bool IsOutsideThePlane(float4 plane, float3 pointPosition)
-{
-    if (dot(plane.xyz, pointPosition) + plane.w > 0)
-        return true;
-    return false;
-}
-
 [numthreads(8,1,1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
@@ -49,39 +43,19 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     float3 center = CullDataBuffer[id.x].center;
     float3 extens = CullDataBuffer[id.x].extents;
 
-    float minX = 1, minY = 1, minZ = 1, maxX = -1, maxY = -1, maxZ = -1; //NDC下新的的AABB各个参数
 
     //-------------------------------------------------------视椎剔除-------------------------------------------------------
     float3 BoundsVerts[8];
-    float3 minBounds = BoundsVerts[0] = center - extens;
-    float3 maxBounds = BoundsVerts[1] = center + extens;
-    BoundsVerts[2] = float3(maxBounds.x, maxBounds.y, minBounds.z);
-    BoundsVerts[3] = float3(maxBounds.x, minBounds.y, maxBounds.z);
-    BoundsVerts[4] = float3(maxBounds.x, minBounds.y, minBounds.z);
-    BoundsVerts[5] = float3(minBounds.x, maxBounds.y, maxBounds.z);
-    BoundsVerts[6] = float3(minBounds.x, maxBounds.y, minBounds.z);
-    BoundsVerts[7] = float3(minBounds.x, minBounds.y, maxBounds.z);
+    GetBounds(center,extens,BoundsVerts);
 
     #ifdef FrustumCull
-    for (int i = 0; i < 6; i++)
-    {
-        for (int j = 0; j < 8; j++)
-        {
-            if (!IsOutsideThePlane(cameraPanels[i], BoundsVerts[j]))
-            {
-                break;
-            }
-            if (j == 7)
-            {
-                return;
-            }
-        }
-    }
+    if(!FrustmCull(cameraPanels,BoundsVerts))
+        return;
     #endif
 
-    
     //-------------------------------------------------------遮挡剔除-------------------------------------------------------
     #ifdef HiZCull
+    float minX = 1, minY = 1, minZ = 1, maxX = -1, maxY = -1, maxZ = -1; //NDC下新的的AABB各个参数
     for (int j = 0; j < 8; j++)
     {
         // 计算八个顶点的ClipSpace坐标 用于深度剔除
@@ -157,7 +131,3 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
     LocalToWorldCulled.Append(localToWorld);
 }
-
-// TODO: 视椎剔除
-
-// TODO: 遮挡剔除
