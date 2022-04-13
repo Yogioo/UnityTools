@@ -79,6 +79,9 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     }
     #endif
 
+    
+    //-------------------------------------------------------遮挡剔除-------------------------------------------------------
+    #ifdef HiZCull
     for (int j = 0; j < 8; j++)
     {
         // 计算八个顶点的ClipSpace坐标 用于深度剔除
@@ -92,19 +95,6 @@ void CSMain(uint3 id : SV_DispatchThreadID)
         maxY = max(maxY, ndc.y);
         maxZ = max(maxZ, ndc.z);
     }
-
-
-    // float4 c = mul(mvp, float4(center,1.0f));
-    // c /= c.w;
-    // minX = c.x - 0.1f;
-    // minY = c.y - 0.1f;
-    // minZ = c.z - 0.1f;
-    // maxX = c.x + 0.1f;
-    // maxY = c.y + 0.1f;
-    // maxZ = c.z + 0.1f;
-
-    //-------------------------------------------------------遮挡剔除-------------------------------------------------------
-    #ifdef HiZCull
     //ndc的AABB的左下角和右上角的uv坐标，ndc的-1到1转换为uv的0到1
     float2 uvLeftBottom = float2(minX, minY) * 0.5f + 0.5f;
     float2 uvRightTop = float2(maxX, maxY) * 0.5f + 0.5f;
@@ -120,7 +110,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
                                    log2(depthTextureSize) - 4);
     //当前mipmap的大小
     uint size = depthTextureSize / (1 << mipmapLevel);
-    //左下角和右下角点所在的像素
+    //左下角和右上角点所在的像素
     uint2 pixelLeftBottom = uint2(clamp(uvLeftBottom.x * size, 0, size - 1),
                                   clamp(uvLeftBottom.y * size, 0, size - 1));
     uint2 pixelRightTop = uint2(clamp(uvRightTop.x * size, 0, size - 1), clamp(uvRightTop.y * size, 0, size - 1));
