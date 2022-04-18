@@ -1,0 +1,41 @@
+﻿#pragma kernel CSMain
+
+cbuffer Data
+{
+	int resultLength;
+};
+
+Buffer<float4> planes;
+RWBuffer<int> results;	// 定义一个可读写Buffer，可以用来把信息传到其它渲染阶段
+
+struct Bounds
+{
+	float3 center;
+	float3 extent;
+};
+
+StructuredBuffer<Bounds> bounds;	
+
+[numthreads(64, 1, 1)]	// 线程分配
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+	// 每个线程处理一个渲染对象
+	uint index = id.x;
+
+	if ((uint)resultLength <= index)
+		return;
+
+	Bounds bound = bounds[index];
+	int result = 1;
+
+	// 使用unroll标签，在编译时会对循环进行展开
+	[unroll(6)]
+	for (int planeIndex = 0; planeIndex < 6; planeIndex++)
+	{		
+		float4 plane = planes[planeIndex];
+		// 相交判断
+		result = result && (dot(bound.center + bound.extent * sign(plane.xyz), plane.xyz) > -plane.w);
+	}
+	// 返回results这个Buffer
+	results[index] = result;
+}
