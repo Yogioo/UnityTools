@@ -29,15 +29,13 @@ public class CullingRenderer : MonoBehaviour
 
     private void Awake()
     {
-        var mesh = this.GetComponent<MeshFilter>().sharedMesh;
         m_Renderer = this.GetComponent<MeshRenderer>();
-        m_Renderer.enabled = false;
+        var mesh = this.GetComponent<MeshFilter>().sharedMesh;
         var mat = this.m_Renderer.sharedMaterial;
         this.m_Renderer.sharedMaterial.enableInstancing = true;
         MyKey = new Tuple<Mesh, Material>(mesh, mat);
         m_Renderer = this.GetComponent<Renderer>();
         
-
         IsInit = true;
     }
 
@@ -61,13 +59,23 @@ public class CullingRenderer : MonoBehaviour
 
     void OnEnable()
     {
+
         FullCameraCulling.Instance.Add(this);
+        // if (this.GetBounds.extents.magnitude > 20)
+        // {
+        //     this.enabled = false;
+        //     return;
+        // }
+        m_Renderer.enabled = false;
+
     }
 
     private void OnDisable()
     {
         FullCameraCulling.Instance.Remove(this);
         IsInit = false;
+        m_Renderer.enabled = true;
+
     }
 
     private void OnDestroy()

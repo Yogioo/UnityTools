@@ -1,35 +1,38 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using UnityEditor.Experimental.TerrainAPI;
+using Sunset.SceneManagement;
 using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.Rendering;
-using UnityEngine.UI;
 
 [RequireComponent(typeof(HZB))]
 public class FullCameraCulling : MonoBehaviour
 {
+    public bool ActiveOcclusionCulling= true;
+    public bool ActiveFrustumCulling = true;
+    
     public static FullCameraCulling Instance;
     private HZB m_Hzb;
     private new Camera camera;
-
+    
     private List<CellData> DrawData;
 
     public ComputeShader cs;
-
     public ComputeBuffer localToWorldMatrixBufferCulled, DrawDataBuffer;
-
     private ComputeBuffer argsBuffer;
+    
     private uint[] args = new uint[5] { 0, 0, 0, 0, 0 };
     public MaterialPropertyBlock materialBlock;
 
+    public LayerMask CullingMask = new LayerMask() { value = int.MaxValue };
 
     public Mesh MeshTest;
     public Material Mat;
-    Bounds drawBounds = new Bounds(Vector3.zero, Vector3.one * 10000);
+
+    private Vector4[] cameraPanels;
+    Bounds drawBounds = new Bounds(Vector3.zero, Vector3.one*100);
 
     private Dictionary<Tuple<Mesh, Material>, List<CullingRenderer>> CullingRenders =
         new Dictionary<Tuple<Mesh, Material>, List<CullingRenderer>>();
@@ -50,9 +53,10 @@ public class FullCameraCulling : MonoBehaviour
 
     public void Add(CullingRenderer renderer)
     {
+        
         Profiler.BeginSample("Total");
 
-        
+
         Profiler.BeginSample("AddData");
 
         if (this.CullingRenders.ContainsKey(renderer.MyKey))
@@ -94,6 +98,7 @@ public class FullCameraCulling : MonoBehaviour
                 array[i].Index--;
             }
         }
+
         UpdateDrawData();
     }
 
@@ -103,6 +108,7 @@ public class FullCameraCulling : MonoBehaviour
         {
             DrawDataBuffer.Release();
         }
+
         DrawDataBuffer = new ComputeBuffer(DrawData.Count, Marshal.SizeOf(typeof(CellData)));
         DrawDataBuffer.SetData(DrawData.ToArray());
     }
@@ -115,19 +121,8 @@ public class FullCameraCulling : MonoBehaviour
 
 
         DrawData = new List<CellData>();
-        var renderTargets = FindObjectsOfType<Renderer>().ToList();
-        for (var i = 0; i < renderTargets.Count; i++)
-        {
-            var renderTarget = renderTargets[i];
-            // renderTarget.enabled = false;
-            //
-            // var bounds = renderTarget.bounds;
-            // DrawData.Add(new CellData(bounds.center, bounds.extents,
-            // renderTarget.localToWorldMatrix));
-            renderTarget.gameObject.AddComponent<CullingRenderer>();
-        }
 
-        // InitSceneData();
+        InitSceneData();
 
         UpdateDrawData();
 
@@ -138,18 +133,36 @@ public class FullCameraCulling : MonoBehaviour
     private void InitSceneData()
     {
         var renderTargets = FindObjectsOfType<Renderer>().ToList();
-
-        Profiler.BeginSample("Test");
         for (var i = 0; i < renderTargets.Count; i++)
         {
             var renderTarget = renderTargets[i];
-            if (renderTarget.GetComponent<CullingRenderer>() == null)
+            // renderTarget.enabled = false;
+            //
+            // var bounds = renderTarget.bounds;
+            // DrawData.Add(new CellData(bounds.center, bounds.extents,
+            // renderTarget.localToWorldMatrix));
+
+            var result = CullingMask.value & (1 << renderTarget.gameObject.layer);
+            if (result != 0)
             {
                 renderTarget.gameObject.AddComponent<CullingRenderer>();
             }
         }
-        Profiler.EndSample();
 
+
+        //
+        // var renderTargets = FindObjectsOfType<Renderer>().ToList();
+        //
+        // Profiler.BeginSample("Test");
+        // for (var i = 0; i < renderTargets.Count; i++)
+        // {
+        //     var renderTarget = renderTargets[i];
+        //     if (renderTarget.GetComponent<CullingRenderer>() == null)
+        //     {
+        //         renderTarget.gameObject.AddComponent<CullingRenderer>();
+        //     }
+        // }
+        // Profiler.EndSample();
     }
 
     void OnDestroy()
@@ -210,12 +223,61 @@ public class FullCameraCulling : MonoBehaviour
         cs.SetVector("_CamPosition", m_camPosition);
 
         cs.SetBuffer(k, "bounds", DrawDataBuffer);
+        
+        cs.SetBool("_ActiveFrustumCulling", this.ActiveFrustumCulling);
+        cs.SetBool("_ActiveOcclusionCulling", this.ActiveOcclusionCulling);
+        
+        cs.SetVectorArray("_CameraPanels",cameraPanels);
 
         int length = DrawData.Count;
-        cs.SetInt("_Count",length);
+        cs.SetInt("_Count", length);
         int threadSizeX = 64;
         int dispatchXLength = length / threadSizeX + (length % (int)threadSizeX > 0 ? 1 : 0);
+
+        cs.Dispatch(k, (int)dispatchXLength, 1, 1);
+
+        ComputeBuffer.CopyCount(localToWorldMatrixBufferCulled, argsBuffer, sizeof(uint) * 1);
+        this.materialBlock.SetBuffer("localToWorldBuffer", localToWorldMatrixBufferCulled);
+    }
+    
+    private void CullShadow()
+    {
+        if (localToWorldMatrixBufferCulled != null)
+        {
+            localToWorldMatrixBufferCulled.SetCounterValue(0);
+        }
+        else
+        {
+            localToWorldMatrixBufferCulled =
+                new ComputeBuffer(this.DrawData.Count, Marshal.SizeOf<Matrix4x4>(), ComputeBufferType.Append);
+        }
+
+        var k = cs.FindKernel("CSMain");
+        cs.SetBuffer(k, "LocalToWorldCulled", localToWorldMatrixBufferCulled);
+
+        cs.SetTexture(k, "_HiZMap", m_Hzb.Texture);
+        cs.SetVector("_HiZTextureSize", m_Hzb.TextureSize);
+
+        Matrix4x4 v = camera.worldToCameraMatrix;
+        // Matrix4x4 p = camera.projectionMatrix;
+        Matrix4x4 p = FullCullingMainLight.Instance.m_ShadowCam.projectionMatrix;// c
+        Matrix4x4 m_MVP = p * v;
+        cs.SetMatrix("_UNITY_MATRIX_MVP", m_MVP);
+        Vector3 m_camPosition = FullCullingMainLight.Instance.m_ShadowCam.transform.position; //c 
+        cs.SetVector("_CamPosition", m_camPosition);
+
+        cs.SetBuffer(k, "bounds", DrawDataBuffer);
         
+        cs.SetBool("_ActiveFrustumCulling", this.ActiveFrustumCulling);
+        cs.SetBool("_ActiveOcclusionCulling", false); // c
+        
+        cs.SetVectorArray("_CameraPanels",cameraPanels);
+
+        int length = DrawData.Count;
+        cs.SetInt("_Count", length);
+        int threadSizeX = 64;
+        int dispatchXLength = length / threadSizeX + (length % (int)threadSizeX > 0 ? 1 : 0);
+
         cs.Dispatch(k, (int)dispatchXLength, 1, 1);
 
         ComputeBuffer.CopyCount(localToWorldMatrixBufferCulled, argsBuffer, sizeof(uint) * 1);
@@ -224,9 +286,13 @@ public class FullCameraCulling : MonoBehaviour
 
     private void Update()
     {
+        drawBounds.center = camera.transform.position;
+        cameraPanels = CheckExtent.GetFrustumPlane(camera);
         Cull();
         Draw();
-        DrawShadow();
+        // cameraPanels = CheckExtent.GetFrustumPlane(FullCullingMainLight.Instance.m_ShadowCam);
+        // CullShadow();
+        // DrawShadow();
     }
 
     private void Draw()
@@ -235,6 +301,7 @@ public class FullCameraCulling : MonoBehaviour
             ShadowCastingMode.Off, true);
     }
 
+    
     private void DrawShadow()
     {
         Graphics.DrawMeshInstancedIndirect(MeshTest, 0, Mat, drawBounds, argsBuffer, 0, materialBlock,
