@@ -46443,12 +46443,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ActiveOcclusionCulling: 1
   ActiveFrustumCulling: 1
+  Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  Material: {fileID: 2100000, guid: 9e3504dea32f2b0478857f3091e13198, type: 2}
+  ShadowOnlyMaterial: {fileID: 2100000, guid: 66f8760192502374a909fbb12309879d, type: 2}
   cs: {fileID: 7200000, guid: 318468557cf14ae4dad530f1b2a62c31, type: 3}
   CullingMask:
     serializedVersion: 2
     m_Bits: 55
-  MeshTest: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
-  Mat: {fileID: 2100000, guid: 9e3504dea32f2b0478857f3091e13198, type: 2}
 --- !u!1 &996664437
 GameObject:
   m_ObjectHideFlags: 0
@@ -63417,7 +63418,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.01
-  far clip plane: 1000
+  far clip plane: 300
   field of view: 60
   orthographic: 1
   orthographic size: 17.05
