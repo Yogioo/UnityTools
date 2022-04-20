@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Unlit_LayeredParallax
-  m_Shader: {fileID: 4800000, guid: 74699d36d34cf4f4d91ab001a335fca7, type: 3}
+  m_Name: Masaka_LayeredParallax_WorldSpace
+  m_Shader: {fileID: 4800000, guid: 0cf3945726ed30345b087ad2855d8ce7, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -19,16 +19,13 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
-    - _HeightTex:
+    - _MainTex:
         m_Texture: {fileID: 2800000, guid: 9342cf714b249ac46a9687540d2e2bf0, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
-    - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 9342cf714b249ac46a9687540d2e2bf0, type: 3}
-        m_Scale: {x: 5, y: 10}
-        m_Offset: {x: 0, y: 0}
     m_Floats:
-    - _Count: 37
-    - _Height: 0.92
+    - _Count: 15.1
+    - _Height: 6.84
+    - _WorldScale: 0.1
     m_Colors: []
   m_BuildTextureStacks: []
