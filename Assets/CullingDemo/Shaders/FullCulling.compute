@@ -9,7 +9,7 @@ cbuffer CB
     float3 _CamPosition;
     float4 _CameraPanels[6];
     
-    float4x4 _UNITY_MATRIX_MVP;
+    float4x4 _UNITY_MATRIX_VP;
     Texture2D<float4> _HiZMap;
     SamplerState sampler_HiZMap;
 
@@ -157,7 +157,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     boxCorners[6] = float4(maxPos.x, maxPos.y, minPos.z, 1.0);
     boxCorners[7] = float4(maxPos.x, maxPos.y, maxPos.z, 1.0);
 
-    float4 clipPos = mul(_UNITY_MATRIX_MVP, boxCorners[0]);
+    float4 clipPos = mul(_UNITY_MATRIX_VP, boxCorners[0]);
     uint isInFrustum;
     if (_ActiveFrustumCulling)
     {
@@ -179,7 +179,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     [unroll]
     for (int i = 1; i < 8; i++)
     {
-        clipPos = mul(_UNITY_MATRIX_MVP, boxCorners[i]);
+        clipPos = mul(_UNITY_MATRIX_VP, boxCorners[i]);
 
         // For Frustum
         // isInFrustum = saturate(isInFrustum + IsVisibleAfterFrustumCulling(clipPos));
