@@ -63,9 +63,10 @@ Shader "Masaka/LayeredParallax"
             {
                 fixed4 col = 0; //tex2D(_MainTex, i.uv);
 
-                for (float index = 0; index < _Count; index++)
+                // Reference: https://halisavakis.com/my-take-on-shaders-parallax-effect-part-ii/
+                for (int index = 0; index < _Count; index++)
                 {
-                    float ratio = index / _Count;
+                    float ratio = (float)index / _Count;
                     float2 uvOffset = normalize(i.viewDirTangentSpace) * lerp(0,_Height, ratio) * lerp(1, 0, ratio);
                     col += tex2D(_MainTex, i.uv + uvOffset);
                 }
