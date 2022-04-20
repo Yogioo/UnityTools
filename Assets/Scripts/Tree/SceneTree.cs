@@ -535,7 +535,9 @@ namespace Sunset.SceneManagement
             planes[3] = GetPlane(cameraPosition, points[2], points[3]); //up
             planes[4] = GetPlane(-transform.forward,
                 transform.position + transform.forward * camera.nearClipPlane); //near
-            planes[5] = GetPlane(transform.forward, transform.position + transform.forward * camera.farClipPlane); //far
+            planes[5] = GetPlane(transform.forward,
+                transform.position + transform.forward * camera.farClipPlane); //far
+
             return planes;
         }
 

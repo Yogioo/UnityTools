@@ -7,12 +7,15 @@ cbuffer CB
 {
     float2 _HiZTextureSize;
     float3 _CamPosition;
+    float4 _CameraPanels[6];
     
     float4x4 _UNITY_MATRIX_MVP;
     Texture2D<float4> _HiZMap;
     SamplerState sampler_HiZMap;
 
     int _Count;
+    bool _ActiveFrustumCulling;
+    bool _ActiveOcclusionCulling;
     
     // Output
     AppendStructuredBuffer<float4x4> LocalToWorldCulled;
@@ -31,7 +34,7 @@ StructuredBuffer<CellData> bounds;
 // RWBuffer<int> results;
 
 // Hi-Z Culling
-inline uint IsVisibleAfterOcclusionCulling(CellData bound, float clipMinX, float clipMaxX, float clipMinY, float clipMaxY, float clipMinZ)
+inline uint IsVisibleAfterOcclusionCulling(float clipMinX, float clipMaxX, float clipMinY, float clipMaxY, float clipMinZ)
 {
     // Change it to 0 - 1 range 
     float2 minXY = float2(clipMinX, clipMinY) * 0.5 + 0.5;
@@ -84,6 +87,7 @@ inline uint IsVisibleAfterOcclusionCulling(CellData bound, float clipMinX, float
     return (1.0 - clipMinZ) >= HIZdepth - 0.000015; // last is an epsilon
 }
 
+// 这是错误的
 inline uint IsVisibleAfterFrustumCulling(float4 clipPos)
 {
     return (clipPos.z > clipPos.w 
@@ -94,13 +98,40 @@ inline uint IsVisibleAfterFrustumCulling(float4 clipPos)
             ? 0 : 1;
 }
 
+inline bool IsOutsideThePlane(float4 plane, float3 pointPosition)
+{
+    if (dot(plane.xyz, pointPosition) + plane.w > 0)
+        return true;
+    return false;
+}
+
+// Return is in Frustum
+inline bool FrustumCull(float4 cameraPanels[6], float4 BoundsVerts[8])
+{
+    for (int i = 0; i < 6; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            if (!IsOutsideThePlane(cameraPanels[i], BoundsVerts[j].xyz))
+            {
+                break;
+            }
+            if (j == 7)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 
 [numthreads(64, 1, 1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     uint tID = id.x;
 
-    if(id.x > _Count)
+    if(tID > _Count)
     {
         return;
     }
@@ -109,8 +140,12 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     CellData bound = bounds[tID];
 
     // Check if the instance is visible
-    float3 minPos = bound.center - bound.extent;
-    float3 maxPos = bound.center + bound.extent;
+    
+    // float3 minPos = bound.center - bound.extent;
+    // float3 maxPos = bound.center + bound.extent;
+    float4 center = mul(bound.localToWorld, float4(0,0,0,1.0));
+    float3 minPos = center.xyz - bound.extent;
+    float3 maxPos = center.xyz + bound.extent;
 
     float4 boxCorners[8];
     boxCorners[0] = float4(minPos.x, minPos.y, minPos.z, 1.0);
@@ -123,7 +158,15 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     boxCorners[7] = float4(maxPos.x, maxPos.y, maxPos.z, 1.0);
 
     float4 clipPos = mul(_UNITY_MATRIX_MVP, boxCorners[0]);
-    uint isInFrustum = IsVisibleAfterFrustumCulling(clipPos);
+    uint isInFrustum;
+    if (_ActiveFrustumCulling)
+    {
+        // isInFrustum = IsVisibleAfterFrustumCulling(clipPos);
+        isInFrustum = FrustumCull(_CameraPanels,boxCorners);
+    }else
+    {
+        isInFrustum=1;
+    }
 
     clipPos.xyz = clipPos.xyz / clipPos.w;
     float clipMinX = clipPos.x;
@@ -139,7 +182,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         clipPos = mul(_UNITY_MATRIX_MVP, boxCorners[i]);
 
         // For Frustum
-        isInFrustum = saturate(isInFrustum + IsVisibleAfterFrustumCulling(clipPos));
+        // isInFrustum = saturate(isInFrustum + IsVisibleAfterFrustumCulling(clipPos));
 
         // For HiZ
         clipPos.xyz = clipPos.xyz / clipPos.w;
@@ -153,9 +196,12 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         // minDistanceToCamera = min(distance(boxCorners[i].xyz, _CamPosition.xyz), minDistanceToCamera);
     }
 
-    uint isVisible = 1;
-    isVisible *= isInFrustum;
-    isVisible *= (isVisible > 0) ? IsVisibleAfterOcclusionCulling(bound, clipMinX, clipMaxX, clipMinY, clipMaxY, clipMinZ) : 1;
+    uint isVisible = isInFrustum;
+
+    if(_ActiveOcclusionCulling)
+    {
+        isVisible *= (isVisible > 0) ? IsVisibleAfterOcclusionCulling(clipMinX, clipMaxX, clipMinY, clipMaxY, clipMinZ) : 1;
+    }
 
     if(isVisible >0)
     {
