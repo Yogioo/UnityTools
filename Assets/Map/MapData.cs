@@ -15,13 +15,4 @@ public class MapData
     public Dictionary<GridLayer, GridData[,]> Data;
 
     #endregion
-
-    #region Public
-
-    #endregion
-
-    #region Private
-
-    #endregion
-
 }

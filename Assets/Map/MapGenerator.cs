@@ -20,18 +20,30 @@ public static class MapGenerator
 
     #region Public
 
-    public static MapData Generate(string MapSeed, Vector2Int mapSize,out bool[,] pointArray)
+    public static MapData Generate(string MapSeed, Vector2Int mapSize, out bool[,] pointArray)
     {
-        MapData result = new MapData();
-        result.Data = new Dictionary<GridLayer, GridData[,]>();
+        MapData result = new MapData
+        {
+            Data = new Dictionary<GridLayer, GridData[,]>()
+        };
 
         Random.InitState(MapSeed.GetHashCode());
-        //TODO: 地图生成算法
+        // 地图生成算法
 
-        //1. 地面生成
-        GridLayer layer = GridLayer.Floor;
-        GridMaterial material = GridMaterial.Mat0;
+        //TODO: 基于需求生成不同的层
+        result.Data.Add(GridLayer.Floor, GenerateLayer(GridLayer.Floor, GridMaterial.Mat0, mapSize, out pointArray));
+        // result.Data.Add(GridLayer.Floor, GenerateLayer(GridLayer.Floor, GridMaterial.Mat1, mapSize, out pointArray));
 
+        return result;
+    }
+
+    #endregion
+
+    #region Private
+
+    private static GridData[,] GenerateLayer(GridLayer layer, GridMaterial material, Vector2Int mapSize,
+        out bool[,] pointArray)
+    {
         // Point点集合 数量为边长-1 true为有实体 false为无实体
         pointArray = new bool[mapSize.x - 1, mapSize.y - 1];
         for (int y = 0; y < mapSize.y - 1; y++)
@@ -52,15 +64,8 @@ public static class MapGenerator
 
         Open[,] openArray = ParseToOpenArray(pointArray);
 
-        var layerData = ParseToGridData(layer, material, openArray);
-        result.Data.Add(layer, layerData);
-
-        return result;
+        return ParseToGridData(layer, material, openArray);
     }
-
-    #endregion
-
-    #region Private
 
     private static Open[,] ParseToOpenArray(bool[,] points)
     {
@@ -76,9 +81,9 @@ public static class MapGenerator
                 if (points[x, y])
                 {
                     result[x, y] += (int) Open.TopRight;
-                    result[x+1, y] += (int) Open.TopLeft;
-                    result[x, y+1] += (int) Open.DownRight;
-                    result[x+1, y+1] += (int) Open.DownLeft;
+                    result[x + 1, y] += (int) Open.TopLeft;
+                    result[x, y + 1] += (int) Open.DownRight;
+                    result[x + 1, y + 1] += (int) Open.DownLeft;
                 }
             }
         }

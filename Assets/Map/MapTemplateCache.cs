@@ -46,7 +46,7 @@ public static class MapTemplateCache
 
     public static Sprite GetTexture(GridLayer layer, GridMaterial material, Open open)
     {
-        return GridConfig[layer][material].GetSpriteByOpenDoor(open);
+        return GridConfig[layer][material].GetSprieteByOpenDoor(open);
     }
     
 
