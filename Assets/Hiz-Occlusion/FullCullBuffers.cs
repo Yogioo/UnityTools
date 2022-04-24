@@ -94,7 +94,7 @@ public class FullCullBuffers
 
 
     public void Cull(ComputeShader cs, bool p_ActiveFrustumCulling, bool p_ActiveOcclusionCulling,
-        RenderTexture hzRT, Vector4 hzRTSize, Matrix4x4 p_MVP, Vector3 p_CamPos,
+        RenderTexture hzRT, Vector4 hzRTSize, Matrix4x4 p_VP, Vector3 p_CamPos,
         Vector4[] p_CameraPanels
     )
     {
@@ -114,7 +114,7 @@ public class FullCullBuffers
         cs.SetTexture(k, "_HiZMap", hzRT);
         cs.SetVector("_HiZTextureSize", hzRTSize);
 
-        cs.SetMatrix("_UNITY_MATRIX_MVP", p_MVP);
+        cs.SetMatrix("_UNITY_MATRIX_VP", p_VP);
         cs.SetVector("_CamPosition", p_CamPos);
 
         cs.SetBuffer(k, "bounds", DrawDataBuffer);

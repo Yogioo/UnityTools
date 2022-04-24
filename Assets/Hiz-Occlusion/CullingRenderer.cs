@@ -35,31 +35,33 @@ public class CullingRenderer : MonoBehaviour
         this.m_Renderer.sharedMaterial.enableInstancing = true;
         MyKey = new Tuple<Mesh, Material>(mesh, mat);
         m_Renderer = this.GetComponent<Renderer>();
-        
+
         IsInit = true;
     }
 
     private void FixedUpdate()
     {
-        Profiler.BeginSample("CullingFixed");
-        if (lastPos != this.transform.position ||
-            lastRot != this.transform.eulerAngles ||
-            lastScale != this.transform.lossyScale)
+        Profiler.BeginSample("CullingRendering FixedCheck");
+        var trans = this.transform;
+        if (lastPos != trans.position ||
+            lastRot != trans.eulerAngles ||
+            lastScale != trans.lossyScale)
+            // if (trans.hasChanged) // Always Be True
         {
-            lastPos = this.transform.position;
-            lastRot = this.transform.eulerAngles;
-            lastScale = this.transform.lossyScale;
-            
+            lastPos = trans.position;
+            lastRot = trans.eulerAngles;
+            lastScale = trans.lossyScale;
+
             Profiler.BeginSample("Culling Modify");
             FullCameraCulling.Instance.Modify(this);
             Profiler.EndSample();
         }
+
         Profiler.EndSample();
     }
 
     void OnEnable()
     {
-
         FullCameraCulling.Instance.Add(this);
         // if (this.GetBounds.extents.magnitude > 20)
         // {
@@ -67,7 +69,6 @@ public class CullingRenderer : MonoBehaviour
         //     return;
         // }
         m_Renderer.enabled = false;
-
     }
 
     private void OnDisable()
@@ -75,7 +76,6 @@ public class CullingRenderer : MonoBehaviour
         FullCameraCulling.Instance.Remove(this);
         IsInit = false;
         m_Renderer.enabled = true;
-
     }
 
     private void OnDestroy()

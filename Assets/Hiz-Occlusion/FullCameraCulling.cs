@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sunset.SceneManagement;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.Rendering;
@@ -141,19 +142,24 @@ public class FullCameraCulling : MonoBehaviour
         
         var v = camera.worldToCameraMatrix;
         var p = camera.projectionMatrix;
-        Matrix4x4 m_MVP = p * v;
+        Matrix4x4 m_VP = p * v;
         Vector4[] cameraPanels = CheckExtent.GetFrustumPlane(camera);
         // var panels = GeometryUtility.CalculateFrustumPlanes(camera);
         
         m_FullCullBuffers.Cull(cs,ActiveFrustumCulling,ActiveOcclusionCulling,
-            m_Hzb.Texture,m_Hzb.TextureSize,m_MVP, camera.transform.position,cameraPanels);
+            m_Hzb.Texture,m_Hzb.TextureSize,m_VP, camera.transform.position,cameraPanels);
 
-        var shadowCam = FullCullingMainLight.Instance.m_ShadowCam;
-        var shadowV = shadowCam.worldToCameraMatrix;
-        var shadowP = shadowCam.projectionMatrix;
-        var shadowMVP = shadowP * shadowV;
+        
+        // var shadowView = Shader.GetGlobalMatrix("unity_WorldToLight");
+        var shadowProjection = Shader.GetGlobalMatrix("unity_WorldToShadow");
+        var shadowVP = shadowProjection;// * shadowView;
+        var panels2 = GeometryUtility.CalculateFrustumPlanes(shadowVP);
+        // var shadowCam = FullCullingMainLight.Instance.m_ShadowCam;
+        // var shadowV = shadowCam.worldToCameraMatrix;
+        // var shadowP = shadowCam.projectionMatrix;
+        // var shadowVP = shadowP * shadowV;
         var shadowCameraPanels = new Vector4[6];// CheckExtent.GetFrustumPlane(shadowCam);
-        var panels2 = GeometryUtility.CalculateFrustumPlanes(shadowCam);
+        // var panels2 = GeometryUtility.CalculateFrustumPlanes(shadowCam);
         
         for (var i = 0; i < shadowCameraPanels.Length; i++)
         {
@@ -162,7 +168,7 @@ public class FullCameraCulling : MonoBehaviour
             shadowCameraPanels[i] = new Vector4(-normal.x,-normal.y,-normal.z, -plane.distance);
         }
         m_FullCullShadowBuffers.Cull(cs,ActiveFrustumCulling,false,
-            m_Hzb.Texture,m_Hzb.TextureSize,shadowMVP, camera.transform.position,shadowCameraPanels);
+            m_Hzb.Texture,m_Hzb.TextureSize,shadowVP, camera.transform.position,shadowCameraPanels);
     }
 
     private void Update()
