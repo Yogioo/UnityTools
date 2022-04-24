@@ -30,20 +30,14 @@ public class GridConfig
     public Sprite GetSpriteByOpenDoor(Open open)
     {
         var openID = (int)open;
-        if (openID < 0)
+        if (openID <= 0)
         {
             return null;
         }
         
-        if (openID == 0|| openID >= 15)
+        if (openID >= 15)
         {
-            // 随机15~最大数量 + 当前0的贴图
-            int maxPlusOne = DisplayTextures.Count + 1;
-            var index = Random.Range(15, maxPlusOne);
-            if (index == DisplayTextures.Count)
-            {
-                index = 0;
-            }
+            var index = Random.Range(15, DisplayTextures.Count);
             return DisplayTextures[index];
         }
         else

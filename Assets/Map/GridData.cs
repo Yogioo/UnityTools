@@ -91,13 +91,13 @@ public enum Open
     /// <summary>
     /// 空
     /// </summary>
-    Empty = -1,
-    /// <summary>
-    ///  全开口
-    /// </summary>
-    All = 0,
+    Empty = 0,
     TopRight = 1,
     TopLeft = 2,
     DownRight = 4,
     DownLeft = 8,
+    /// <summary>
+    /// 全开口也等于15
+    /// </summary>
+    AllOpen = 15,
 }

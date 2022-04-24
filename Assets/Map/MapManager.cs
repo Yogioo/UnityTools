@@ -19,7 +19,7 @@ public class MapManager : MonoBehaviour
     public string GameSeed;
     public Vector2Int GameMapSize = new Vector2Int(100, 100);
 
-    public Tilemap Tilemap;
+    public SpriteRenderer GirdPrefab;
 
     #endregion
 
@@ -35,50 +35,48 @@ public class MapManager : MonoBehaviour
     {
         MapTemplateCache.Init(mapConfig);
 
-        this.MapData = MapGenerator.Generate(GameSeed, GameMapSize, out debugGrid);
+        this.MapData = MapGenerator.Generate(GameSeed, GameMapSize, out debugPointArray);
 
-        InitTileMap();
+        StartCoroutine(InitTileMap());
     }
 
-    void InitTileMap()
+    private bool[,] debugPointArray;
+
+    private void OnDrawGizmos()
+    {
+        if (debugPointArray == null) return;
+        var maxX = debugPointArray.GetLength(0);
+        var maxY = debugPointArray.GetLength(1);
+        for (int i = 0; i < maxX; i++)
+        {
+            for (int j = 0; j < maxY; j++)
+            {
+                if (debugPointArray[i, j])
+                {
+                    Gizmos.DrawWireSphere(new Vector3(i + 0.5f, j + .5f, 0), .1f);
+                }
+            }
+        }
+    }
+
+    IEnumerator InitTileMap()
     {
         var floor = this.MapData.Data[GridLayer.Floor];
         var maxX = floor.GetLength(0);
         var maxY = floor.GetLength(0);
-        Tilemap.size = new Vector3Int(maxX, maxY, 1);
-        Tilemap.
+        Debug.Log(this.MapData.Data.Values.Count);
         foreach (var gridData in this.MapData.Data.Values)
         {
             for (int i = 0; i < gridData.GetLength(0); i++)
             {
                 for (int j = 0; j < gridData.GetLength(1); j++)
                 {
-                    var tile = ScriptableObject.CreateInstance<Tile>();
-                    tile.sprite = gridData[i, j].DisplaySprite;
-                    Tilemap.SetTile(new Vector3Int(i, j, 0), tile);
-                    gridData[i, j].OnDisplayChange += (x) => tile.sprite = x;
-                }
-            }
-        }
-    }
+                    var renderer = GameObject.Instantiate(GirdPrefab, this.transform);
+                    renderer.sprite = gridData[i, j].DisplaySprite;
+                    renderer.transform.position = new Vector3(i, j, 0);
+                    gridData[i, j].OnDisplayChange += (x) => renderer.sprite = x;
 
-    private Open[,] debugGrid;
-
-    private void OnDrawGizmos()
-    {
-        if (debugGrid == null)
-        {
-            return;
-        }
-
-        Vector3 size = Vector3.one * .5f;
-        for (var x = 0; x < debugGrid.GetLength(0); x++)
-        {
-            for (var y = 0; y < debugGrid.GetLength(1); y++)
-            {
-                if (debugGrid[x, y] != Open.Empty)
-                {
-                    Gizmos.DrawCube(new Vector3(x, 0, y), size);
+                    yield return new WaitForSeconds(.1f);
                 }
             }
         }

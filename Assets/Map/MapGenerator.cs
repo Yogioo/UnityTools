@@ -20,7 +20,7 @@ public static class MapGenerator
 
     #region Public
 
-    public static MapData Generate(string MapSeed, Vector2Int mapSize, out Open[,] DebugGrid)
+    public static MapData Generate(string MapSeed, Vector2Int mapSize,out bool[,] pointArray)
     {
         MapData result = new MapData();
         result.Data = new Dictionary<GridLayer, GridData[,]>();
@@ -29,34 +29,30 @@ public static class MapGenerator
         //TODO: 地图生成算法
 
         //1. 地面生成
-
         GridLayer layer = GridLayer.Floor;
         GridMaterial material = GridMaterial.Mat0;
 
-        // grid图集 0为有实体 -1为无实体
-        Open[,] gridArray = new Open[mapSize.x, mapSize.y];
-        for (int y = 0; y < mapSize.y; y++)
+        // Point点集合 数量为边长-1 true为有实体 false为无实体
+        pointArray = new bool[mapSize.x - 1, mapSize.y - 1];
+        for (int y = 0; y < mapSize.y - 1; y++)
         {
-            for (int x = 0; x < mapSize.x; x++)
+            for (int x = 0; x < mapSize.x - 1; x++)
             {
                 // 1/2概率生成Grid概率
                 if (Random.Range(0, 1.0f) < 0.6f)
                 {
-                    gridArray[x, y] = Open.All;
+                    pointArray[x, y] = true;
                 }
                 else
                 {
-                    gridArray[x, y] = Open.Empty;
+                    pointArray[x, y] = false;
                 }
             }
         }
 
-        // 如果当前格子不满足要求就删除 (要求至少与两面接壤 只有上下接壤or左右接壤无效)
-        MinusErrorGrid(ref gridArray);
+        Open[,] openArray = ParseToOpenArray(pointArray);
 
-        DebugGrid = gridArray;
-
-        var layerData = ParseToGridData(layer, material, gridArray);
+        var layerData = ParseToGridData(layer, material, openArray);
         result.Data.Add(layer, layerData);
 
         return result;
@@ -66,93 +62,28 @@ public static class MapGenerator
 
     #region Private
 
-    private static void MinusErrorGrid(ref Open[,] gridArray)
+    private static Open[,] ParseToOpenArray(bool[,] points)
     {
-        // 递归标识符, 如果当前循环中 有东西是错误的, 那么将会进行下一次递归 直到地图不会有错误为止
-        bool isNeedContinue = false;
+        var xMax = points.GetLength(0) + 1;
+        var yMax = points.GetLength(1) + 1;
+        Open[,] result = new Open[xMax, yMax];
 
-        int maxX = gridArray.GetLength(0);
-        int maxY = gridArray.GetLength(1);
-
-        for (var i = 0; i < maxX; i++)
+        // 遍历点
+        for (int x = 0; x < xMax - 1; x++)
         {
-            for (var j = 0; j < maxY; j++)
+            for (int y = 0; y < yMax - 1; y++)
             {
-                var current = gridArray[i, j];
-                if (current == Open.All)
+                if (points[x, y])
                 {
-                    bool right, left, top, down;
-                    right = left = top = down = false;
-
-                    if (i == 0)
-                    {
-                        left = true;
-                    }
-                    else if (i == maxX - 1)
-                    {
-                        right = true;
-                    }
-                    else
-                    {
-                        left = gridArray[i - 1, j] != Open.Empty;
-                        right = gridArray[i + 1, j] != Open.Empty;
-                    }
-
-
-                    if (j == 0)
-                    {
-                        down = true;
-                    }
-                    else if (j == maxY - 1)
-                    {
-                        top = true;
-                    }
-                    else
-                    {
-                        top = gridArray[i, j + 1] != Open.Empty;
-                        down = gridArray[i, j - 1] != Open.Empty;
-                    }
-
-                    //当前节点必须至少满足右上 右下 左上 左下之中的一个 否则是无效节点需要移除
-
-                    bool isCorrect = false;
-                    if (top & right)
-                    {
-                        gridArray[i, j] += (int) Open.TopRight;
-                        isCorrect = true;
-                    }
-
-                    if (down & right)
-                    {
-                        gridArray[i, j] += (int) Open.DownRight;
-                        isCorrect = true;
-                    }
-
-                    if (top & left)
-                    {
-                        gridArray[i, j] += (int) Open.TopLeft;
-                        isCorrect = true;
-                    }
-
-                    if (down & left)
-                    {
-                        gridArray[i, j] += (int) Open.DownLeft;
-                        isCorrect = true;
-                    }
-
-                    if (!isCorrect)
-                    {
-                        gridArray[i, j] = Open.Empty;
-                        isNeedContinue = true;
-                    }
+                    result[x, y] += (int) Open.TopRight;
+                    result[x+1, y] += (int) Open.TopLeft;
+                    result[x, y+1] += (int) Open.DownRight;
+                    result[x+1, y+1] += (int) Open.DownLeft;
                 }
             }
         }
 
-        if (isNeedContinue)
-        {
-            MinusErrorGrid(ref gridArray);
-        }
+        return result;
     }
 
     private static GridData[,] ParseToGridData(GridLayer layer, GridMaterial gridMaterial, Open[,] gridArray)
