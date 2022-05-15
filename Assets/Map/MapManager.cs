@@ -90,7 +90,6 @@ public class MapManager : MonoBehaviour
         var floor = this.MapData.Data[GridLayer.Floor];
         var maxX = floor.GetLength(0);
         var maxY = floor.GetLength(0);
-        Debug.Log(this.MapData.Data.Values.Count);
         foreach (var gridData in this.MapData.Data.Values)
         {
             for (int i = 0; i < gridData.GetLength(0); i++)
