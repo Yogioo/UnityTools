@@ -1,0 +1,151 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31390c44c9f3a3d40b424bf6821999a2, type: 3}
+  m_Name: GraphProcessor
+  m_EditorClassIdentifier: 
+  serializedNodes: []
+  nodes:
+  - id: 0
+  - id: 1
+  - id: 2
+  - id: 3
+  edges:
+  - GUID: 8ab4031d-be46-47c0-99cb-85e9ef8f5cc7
+    owner: {fileID: 11400000}
+    inputNodeGUID: 0550468c-feb4-41bc-a68d-54ff890ed71f
+    outputNodeGUID: 38f97e90-225e-4549-ab7b-ca707a5664a0
+    inputFieldName: inputs
+    outputFieldName: output
+    inputPortIdentifier: 
+    outputPortIdentifier: 
+  - GUID: 315bdfa4-1c69-468e-a016-ea135ebf44d3
+    owner: {fileID: 11400000}
+    inputNodeGUID: 0550468c-feb4-41bc-a68d-54ff890ed71f
+    outputNodeGUID: c0f7a068-db0c-48bc-bae1-acd2aeff6b32
+    inputFieldName: inputs
+    outputFieldName: output
+    inputPortIdentifier: 
+    outputPortIdentifier: 
+  - GUID: 17f7c56c-14db-4b72-86fd-b7478606be0c
+    owner: {fileID: 11400000}
+    inputNodeGUID: c1be8783-9f9f-46ff-a094-356f4e658c8d
+    outputNodeGUID: 0550468c-feb4-41bc-a68d-54ff890ed71f
+    inputFieldName: obj
+    outputFieldName: output
+    inputPortIdentifier: 
+    outputPortIdentifier: 
+  groups: []
+  stackNodes: []
+  pinnedElements:
+  - position:
+      serializedVersion: 2
+      x: 0
+      y: 119
+      width: 150
+      height: 200
+    opened: 1
+    editorType:
+      serializedType: GraphProcessor.ExposedParameterView, com.alelievr.NodeGraphProcessor,
+        Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+  - position:
+      serializedVersion: 2
+      x: 0
+      y: 226
+      width: 150
+      height: 200
+    opened: 1
+    editorType:
+      serializedType: GraphProcessor.ProcessorView, com.alelievr.NodeGraphProcessor,
+        Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+  - position:
+      serializedVersion: 2
+      x: 0
+      y: 0
+      width: 150
+      height: 200
+    opened: 1
+    editorType:
+      serializedType: GraphProcessor.ExposedParameterView, com.alelievr.NodeGraphProcessor.Editor,
+        Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+  exposedParameters: []
+  serializedParameterList: []
+  stickyNotes: []
+  nodeInspectorReference: {fileID: 0}
+  position: {x: 153, y: -84, z: 0}
+  scale: {x: 1.15, y: 1.15, z: 1}
+  references:
+    version: 1
+    00000000:
+      type: {class: MultiAddNode, ns: , asm: Assembly-CSharp}
+      data:
+        nodeCustomName: 
+        GUID: 0550468c-feb4-41bc-a68d-54ff890ed71f
+        computeOrder: 2
+        position:
+          serializedVersion: 2
+          x: 300.18906
+          y: 284.31003
+          width: 100
+          height: 100
+        expanded: 0
+        debug: 1
+        nodeLock: 0
+        output: 42
+    00000001:
+      type: {class: FloatNode, ns: , asm: Assembly-CSharp}
+      data:
+        nodeCustomName: 
+        GUID: c0f7a068-db0c-48bc-bae1-acd2aeff6b32
+        computeOrder: 1
+        position:
+          serializedVersion: 2
+          x: 155.51228
+          y: 241.94142
+          width: 74
+          height: 101
+        expanded: 0
+        debug: 0
+        nodeLock: 0
+        output: 21
+        input: 21
+    00000002:
+      type: {class: FloatNode, ns: , asm: Assembly-CSharp}
+      data:
+        nodeCustomName: 
+        GUID: 38f97e90-225e-4549-ab7b-ca707a5664a0
+        computeOrder: 0
+        position:
+          serializedVersion: 2
+          x: 155.31758
+          y: 353.21927
+          width: 74
+          height: 101
+        expanded: 0
+        debug: 0
+        nodeLock: 0
+        output: 21
+        input: 21
+    00000003:
+      type: {class: PrintNode, ns: , asm: Assembly-CSharp}
+      data:
+        nodeCustomName: 
+        GUID: c1be8783-9f9f-46ff-a094-356f4e658c8d
+        computeOrder: 3
+        position:
+          serializedVersion: 2
+          x: 459.2174
+          y: 247.65219
+          width: 72
+          height: 96
+        expanded: 0
+        debug: 1
+        nodeLock: 0

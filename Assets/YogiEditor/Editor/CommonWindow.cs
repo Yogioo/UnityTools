@@ -12,6 +12,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using YogiEditor;
 
 public class CommonWindow : EditorWindow
 {
@@ -78,6 +79,12 @@ public class CommonWindow : EditorWindow
 
     private void InitUIElements()
     {
+        rootVisualElement.Add(new Button(() =>
+        {
+            rootVisualElement.Clear();
+            InitUIElements();
+        }) {text = "Init"});
+
         // rootVisualElement.Add(new Label("UI Element Demo"));
         var container = new ScrollView(ScrollViewMode.VerticalAndHorizontal);
         rootVisualElement.Add(container);
@@ -115,19 +122,30 @@ public class CommonWindow : EditorWindow
             body.Add(singleBox);
 
             var singleLineData = data[i];
-            var sid = new IntegerField(singleLineData.SID);
-            singleBox.Add(sid);
-            singleBox.Add(new FloatField() {value = singleLineData.HP});
-            singleBox.Add(new FloatField() {value = singleLineData.MP});
-            singleBox.Add(new TextField() {value = singleLineData.BaseInfo.Name});
-            singleBox.Add(new TextField() {value = singleLineData.BaseInfo.Description});
+            var so = ScriptableObject.CreateInstance<ScriptAllData>();
+            so.Config = singleLineData;
+            var bindObj = new SerializedObject(so);
 
+            var sid = new IntegerField() {bindingPath = "Config.SID"};
+            singleBox.Add(sid);
+            singleBox.Add(new FloatField() {bindingPath = "Config.HP"});
+            singleBox.Add(new FloatField() {bindingPath = "Config.MP"});
+            singleBox.Add(new TextField()
+                {bindingPath = "Config.BaseInfo.Name"});
+            singleBox.Add(new TextField()
+                {bindingPath = "Config.BaseInfo.Description"});
+            
             sid.Add(new Button(() =>
             {
                 //TODO: 打开与生成蓝图窗口
             }) {text = "Open"});
+
+            singleBox.Bind(bindObj);
+            
         }
     }
+
+
 
     #endregion
 }

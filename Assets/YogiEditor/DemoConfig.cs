@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[System.Serializable]
 public class DemoConfig
 {
     public int SID = 0;
@@ -20,6 +21,7 @@ public class DemoConfig
     }
 }
 
+[System.Serializable]
 public struct BaseInfo
 {
     public string Name, Description;
