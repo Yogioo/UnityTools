@@ -7,7 +7,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -104,6 +106,7 @@ public class CommonWindow : EditorWindow
         var displayData = InputDataManager.GetInputByType(typeof(DemoConfig));
         var data = displayData.Cast<DemoConfig>().ToList();
 
+        
         head.Add(new Label("SID"));
         head.Add(new Label("HP"));
         head.Add(new Label("MP"));
@@ -126,22 +129,30 @@ public class CommonWindow : EditorWindow
             so.Config = singleLineData;
             var bindObj = new SerializedObject(so);
 
-            var sid = new IntegerField() {bindingPath = "Config.SID"};
-            singleBox.Add(sid);
-            singleBox.Add(new FloatField() {bindingPath = "Config.HP"});
-            singleBox.Add(new FloatField() {bindingPath = "Config.MP"});
-            singleBox.Add(new TextField()
-                {bindingPath = "Config.BaseInfo.Name"});
-            singleBox.Add(new TextField()
-                {bindingPath = "Config.BaseInfo.Description"});
-            
-            sid.Add(new Button(() =>
-            {
-                //TODO: 打开与生成蓝图窗口
-            }) {text = "Open"});
+            var fileds = bindObj.targetObject.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public);
 
-            singleBox.Bind(bindObj);
+            var firstName= nameof(so.Config);
+            var seconedNames = so.Config.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public);
+            foreach (var field in seconedNames)
+            {
+                var seconedName = field.Name;
+                singleBox.Add(new PropertyField(bindObj.FindProperty($"{firstName}.{seconedName}")));
+            }
             
+            // var sid = new IntegerField() {bindingPath = "Config.SID"};
+            // singleBox.Add(sid);
+            // singleBox.Add(new FloatField() {bindingPath = "Config.HP"});
+            // singleBox.Add(new FloatField() {bindingPath = "Config.MP"});
+            // singleBox.Add(new TextField()
+            //     {bindingPath = "Config.BaseInfo.Name"});
+            // singleBox.Add(new TextField()
+            //     {bindingPath = "Config.BaseInfo.Description"});
+            //
+            // sid.Add(new Button(() =>
+            // {
+            //     //TODO: 打开与生成蓝图窗口
+            // }) {text = "Open"});
+            singleBox.Bind(bindObj);
         }
     }
 
