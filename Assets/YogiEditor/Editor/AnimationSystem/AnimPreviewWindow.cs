@@ -45,7 +45,11 @@ public class AnimPreviewWindow : EditorWindow
         img = new Image();
         img.style.top = 20;
         rootVisualElement.Add(img);
-        img.Add(new Label("中键移动, 左键旋转, 滚轮缩放, F重置"));
+        var tips = new Label("中键移动, 左键旋转, 滚轮缩放, F重置");
+        img.Add(tips);
+        img.SetEnabled(false);
+        tips.SetEnabled(false);
+        img.focusable = false;
     }
 
     private void OnGUI()
@@ -103,7 +107,7 @@ public class AnimPreviewWindow : EditorWindow
 
         lookAtCenter = new GameObject().transform;
         mPreviewRenderUtility.AddSingleGO(lookAtCenter.gameObject);
-        
+
         displayGO = GameObject.CreatePrimitive(PrimitiveType.Cube);
         mPreviewRenderUtility.AddSingleGO(displayGO);
         displayGO.transform.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(0, 45, 0));
@@ -122,9 +126,17 @@ public class AnimPreviewWindow : EditorWindow
             UpdateBounds();
             displayAnimator = displayGO.GetComponentInChildren<Animator>();
             displayAnimator.Play("idle");
+
             displayAnimator.CrossFade("running", 0, 0, 0);
-            displayAnimator.Update(1.1f);
-            
+            displayAnimator.Update(0f);
+            var playClip = displayAnimator.GetCurrentAnimatorClipInfo(0)[0].clip;
+            playMax = playClip.length; //displayAnimator.GetCurrentAnimatorClipInfo(0)[0].clip.length;
+            Selection.activeObject = displayAnimator.GetCurrentAnimatorClipInfo(0)[0].clip;
+            playValue = 0;
+            displayAnimator.StopPlayback();
+            displayAnimator.StartRecording((int) (playClip.frameRate * playClip.length));
+            isRecoading = true;
+            isRecoadComplete = false;
             //displayAnimator.runtimeAnimatorController.animationClips
 
             // BlendTree bt = new BlendTree().CreateBlendTreeChild(.5f);
@@ -146,7 +158,7 @@ public class AnimPreviewWindow : EditorWindow
         m_PreviewBounds.center = mid;
     }
 
-    private float value;
+    private float playValue, playMax, playMin;
     private static float zoomValue = 10;
 
     private void GUIDraw()
@@ -166,19 +178,11 @@ public class AnimPreviewWindow : EditorWindow
         if (GUILayout.Button("Reset Cam Pos") || Event.current.isKey && Event.current.keyCode == KeyCode.F)
         {
             zoomValue = 10;
-            lookAtCenter.position=Vector3.zero;
+            lookAtCenter.position = Vector3.zero;
             mPreviewRenderUtility.camera.transform.SetPositionAndRotation(new Vector3(0, 0, -10), Quaternion.identity);
         }
 
-        EditorGUI.BeginChangeCheck();
-        value = GUILayout.HorizontalSlider(value, 0, 2);
-        if (EditorGUI.EndChangeCheck())
-        {
-            if (displayAnimator != null)
-            {
-                displayAnimator.Update(value);
-            }
-        }
+        playValue = GUILayout.HorizontalSlider(playValue, 0, playMax);
 
         GUILayout.EndHorizontal();
 
@@ -196,22 +200,50 @@ public class AnimPreviewWindow : EditorWindow
         camera.transform.RotateAround(lookAtCenter.position, camera.transform.up, -m_PreviewDir.x);
         camera.transform.RotateAround(lookAtCenter.position, camera.transform.right, -m_PreviewDir.y);
         // GUI.Box(drawRect, texture);
+        GUI.changed = true;
     }
+
+    private float timer;
+    private bool isRecoading = false;
+    private bool isRecoadComplete = false;
 
     private void Tick()
     {
-        var drawRect = new Rect(0, 20, this.position.width, this.position.height - 20);
-        mPreviewRenderUtility.BeginPreview(drawRect, GUIStyle.none);
-        mPreviewRenderUtility.camera.Render();
-        var texture = mPreviewRenderUtility.EndPreview();
-        img.image = texture;
-        img.style.height = drawRect.height;
-
         if (displayAnimator != null)
         {
-            displayAnimator.Update(value);
+            var drawRect = new Rect(0, 20, this.position.width, this.position.height - 20);
+            mPreviewRenderUtility.BeginPreview(drawRect, GUIStyle.none);
+            mPreviewRenderUtility.camera.Render();
+            var texture = mPreviewRenderUtility.EndPreview();
+            img.image = texture;
+            img.style.height = drawRect.height;
+
+            if (isRecoading)
+            {
+                timer += Time.deltaTime;
+                if (timer > playMax)
+                {
+                    timer = 0;
+                    isRecoading = false;
+                    isRecoadComplete = true;
+                    displayAnimator.StopRecording();
+                    playMax = displayAnimator.recorderStopTime;
+                    playValue = playMin = displayAnimator.recorderStartTime; //+Time.deltaTime;
+
+                    displayAnimator.StartPlayback();
+                }
+                else
+                {
+                    displayAnimator.Update(Time.deltaTime);
+                }
+            }
+            else if (isRecoadComplete)
+            {
+                // playValue = Mathf.Min(playValue, playMax);
+                // playValue = Mathf.Max(playValue, playMin);
+                displayAnimator.playbackTime = playValue;
+            }
         }
-        
     }
 
     public static Vector2 Drag2D(Vector2 scrollPosition, Rect position, out Vector2 movePos2D)
