@@ -4,8 +4,11 @@
 ** Description : 
 */
 
+using System;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class AnimPreviewWindow : EditorWindow
 {
@@ -25,15 +28,24 @@ public class AnimPreviewWindow : EditorWindow
 
     private GameObject displayPrefab;
     private GameObject displayGO;
+    private Transform lookAtCenter;
     private Animator displayAnimator;
 
     #endregion
 
     #region UnityFunc
 
+    private Image img;
+
     void OnEnable()
     {
         this.titleContent.text = "动画混合预览窗口";
+        EditorApplication.update += Tick;
+
+        img = new Image();
+        img.style.top = 20;
+        rootVisualElement.Add(img);
+        img.Add(new Label("中键移动, 左键旋转, 滚轮缩放, F重置"));
     }
 
     private void OnGUI()
@@ -48,6 +60,8 @@ public class AnimPreviewWindow : EditorWindow
             mPreviewRenderUtility.Cleanup();
             mPreviewRenderUtility = null;
         }
+
+        EditorApplication.update -= Tick;
     }
 
     void Awake()
@@ -87,6 +101,9 @@ public class AnimPreviewWindow : EditorWindow
         mPreviewRenderUtility.camera.clearFlags = CameraClearFlags.SolidColor;
         mPreviewRenderUtility.camera.transform.position = new Vector3(0, 0, -10);
 
+        lookAtCenter = new GameObject().transform;
+        mPreviewRenderUtility.AddSingleGO(lookAtCenter.gameObject);
+        
         displayGO = GameObject.CreatePrimitive(PrimitiveType.Cube);
         mPreviewRenderUtility.AddSingleGO(displayGO);
         displayGO.transform.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(0, 45, 0));
@@ -105,8 +122,13 @@ public class AnimPreviewWindow : EditorWindow
             UpdateBounds();
             displayAnimator = displayGO.GetComponentInChildren<Animator>();
             displayAnimator.Play("idle");
-            displayAnimator.CrossFade("running",0, 0, 0);
+            displayAnimator.CrossFade("running", 0, 0, 0);
             displayAnimator.Update(1.1f);
+            
+            //displayAnimator.runtimeAnimatorController.animationClips
+
+            // BlendTree bt = new BlendTree().CreateBlendTreeChild(.5f);
+            // bt.AddChild();
         }
     }
 
@@ -125,6 +147,7 @@ public class AnimPreviewWindow : EditorWindow
     }
 
     private float value;
+    private static float zoomValue = 10;
 
     private void GUIDraw()
     {
@@ -140,33 +163,55 @@ public class AnimPreviewWindow : EditorWindow
             ReplayceDisplayGO();
         }
 
-        if (GUILayout.Button("Reset Cam Pos"))
+        if (GUILayout.Button("Reset Cam Pos") || Event.current.isKey && Event.current.keyCode == KeyCode.F)
         {
+            zoomValue = 10;
+            lookAtCenter.position=Vector3.zero;
             mPreviewRenderUtility.camera.transform.SetPositionAndRotation(new Vector3(0, 0, -10), Quaternion.identity);
         }
 
+        EditorGUI.BeginChangeCheck();
         value = GUILayout.HorizontalSlider(value, 0, 2);
-        displayAnimator.Update(value);
+        if (EditorGUI.EndChangeCheck())
+        {
+            if (displayAnimator != null)
+            {
+                displayAnimator.Update(value);
+            }
+        }
 
-        
         GUILayout.EndHorizontal();
 
-        var drawRect = new Rect(0, 20, this.position.width, this.position.height - 20);
 
         // 上下左右的旋转
-        m_PreviewDir = Drag2D(Vector2.zero, this.position,out var movePos2D);
-        Debug.Log(movePos2D);
+        m_PreviewDir = Drag2D(Vector2.zero, this.position, out var movePos2D);
         Camera camera = mPreviewRenderUtility.camera;
 
-        camera.transform.position += (camera.transform.right * movePos2D.x - camera.transform.up * movePos2D.y) * Time.deltaTime ;
-        camera.transform.RotateAround(m_PreviewBounds.center, camera.transform.up, -m_PreviewDir.x);
-        camera.transform.RotateAround(m_PreviewBounds.center, camera.transform.right, -m_PreviewDir.y);
-        
-        mPreviewRenderUtility.BeginPreview(drawRect, GUIStyle.none);
+        var dir = (camera.transform.position - lookAtCenter.position);
+        var normalizeDir = dir.normalized;
+        camera.transform.position = lookAtCenter.position + normalizeDir * zoomValue;
+        lookAtCenter.position +=
+            (camera.transform.right * movePos2D.x - camera.transform.up * movePos2D.y);
+        camera.transform.LookAt(lookAtCenter);
+        camera.transform.RotateAround(lookAtCenter.position, camera.transform.up, -m_PreviewDir.x);
+        camera.transform.RotateAround(lookAtCenter.position, camera.transform.right, -m_PreviewDir.y);
+        // GUI.Box(drawRect, texture);
+    }
 
+    private void Tick()
+    {
+        var drawRect = new Rect(0, 20, this.position.width, this.position.height - 20);
+        mPreviewRenderUtility.BeginPreview(drawRect, GUIStyle.none);
         mPreviewRenderUtility.camera.Render();
         var texture = mPreviewRenderUtility.EndPreview();
-        GUI.Box(drawRect, texture);
+        img.image = texture;
+        img.style.height = drawRect.height;
+
+        if (displayAnimator != null)
+        {
+            displayAnimator.Update(value);
+        }
+        
     }
 
     public static Vector2 Drag2D(Vector2 scrollPosition, Rect position, out Vector2 movePos2D)
@@ -176,41 +221,57 @@ public class AnimPreviewWindow : EditorWindow
         switch (current.type)
         {
             case EventType.MouseDown:
-                if (position.Contains(current.mousePosition) && current.button == 0)
+                if (position.Contains(current.mousePosition))
                 {
-                    current.Use();
-                    // 让鼠标可以拖动到屏幕外后，从另一边出来
-                    EditorGUIUtility.SetWantsMouseJumping(1);
+                    if (current.button == 0 || current.button == 2)
+                    {
+                        current.Use();
+                        // 让鼠标可以拖动到屏幕外后，从另一边出来
+                        EditorGUIUtility.SetWantsMouseJumping(1);
+                    }
                 }
 
                 break;
             case EventType.MouseUp:
-                if (current.button == 0)
+                if (current.button == 0 || current.button == 2)
                 {
                     EditorGUIUtility.SetWantsMouseJumping(0);
                 }
 
                 break;
             case EventType.MouseDrag:
-                if (current.button == 0)
-                {
-                    // 按住 Shift 键后，可以加快旋转
-                    scrollPosition -= current.delta * (!current.shift ? 1 : 3);
-                    // scrollPosition.y = Mathf.Clamp(scrollPosition.y, -90f, 90f);
-                }
-
-                if (current.button == 2)
-                {
-                    movePos2D -= current.delta * Time.deltaTime * Time.deltaTime ;
-                }
-
-                GUI.changed = true;
-
-
+                HandleMouseDrag(current, ref scrollPosition, ref movePos2D);
+                break;
+            case EventType.ScrollWheel:
+                HandleWheelScroll(current);
                 break;
         }
 
         return scrollPosition;
+    }
+
+    private static void HandleMouseDrag(Event current, ref Vector2 scrollPosition, ref Vector2 movePos2D)
+    {
+        if (current.button == 0)
+        {
+            // 按住 Shift 键后，可以加快旋转
+            scrollPosition -= current.delta * (!current.shift ? 1 : 3);
+            // scrollPosition.y = Mathf.Clamp(scrollPosition.y, -90f, 90f);
+        }
+
+        if (current.button == 2)
+        {
+            movePos2D -= current.delta * Time.deltaTime;
+        }
+
+        GUI.changed = true;
+    }
+
+    private static void HandleWheelScroll(Event current)
+    {
+        zoomValue += -HandleUtility.niceMouseDeltaZoom;
+        zoomValue = Mathf.Max(1, zoomValue);
+        GUI.changed = true;
     }
 
     #endregion
