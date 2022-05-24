@@ -5,8 +5,10 @@
 */
 
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -37,8 +39,8 @@ public class AnimPreviewWindow : EditorWindow
 
     private Image img;
 
-    private const float TimelineHeight = 150; 
-    
+    private const float TimelineHeight = 150;
+
     void OnEnable()
     {
         this.titleContent.text = "动画混合预览窗口";
@@ -115,9 +117,8 @@ public class AnimPreviewWindow : EditorWindow
         displayGO.transform.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(0, 45, 0));
         UpdateBounds();
         DestroyImmediate(displayPrefab);
-
-        InitTimeline();
     }
+
 
     private object timeControlInstance;
     private MethodInfo set, setTransition, doTransitionPreview, onInteractivePreviewGUI, doTimeline;
@@ -126,26 +127,103 @@ public class AnimPreviewWindow : EditorWindow
     {
         // TimeArea t = new TimeArea(true, true, true);
         var timeControlType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.TimelineControl");
+        //UnityEditor.TimelineControl.
+        // TimelineControl
         var constructor = timeControlType.GetConstructor(Type.EmptyTypes);
         timeControlInstance = constructor.Invoke(new object[] { });
         // public void Set(AnimatorStateTransition transition, AnimatorState srcState, AnimatorState dstState)
-        set = timeControlType.GetMethod("Set", BindingFlags.Instance | BindingFlags.Public);
+        // set = timeControlType.GetMethod("Set", BindingFlags.Instance | BindingFlags.Public);
         // public void SetTransition(AnimatorStateTransition transition, AnimatorState sourceState, AnimatorState destinationState, AnimatorControllerLayer srcLayer, Animator previewObject)
-        setTransition = timeControlType.GetMethod("SetTransition", BindingFlags.Instance | BindingFlags.Public);
+        // setTransition = timeControlType.GetMethod("SetTransition", BindingFlags.Instance | BindingFlags.Public);
         //public void DoTransitionPreview()
-        doTransitionPreview =
-            timeControlType.GetMethod("DoTransitionPreview", BindingFlags.Instance | BindingFlags.Public);
+        // doTransitionPreview =
+        // timeControlType.GetMethod("DoTransitionPreview", BindingFlags.Instance | BindingFlags.Public);
         //public void OnInteractivePreviewGUI(Rect r, GUIStyle background)
-        onInteractivePreviewGUI =
-            timeControlType.GetMethod("OnInteractivePreviewGUI", BindingFlags.Instance | BindingFlags.Public);
+        // onInteractivePreviewGUI =
+        //     timeControlType.GetMethod("OnInteractivePreviewGUI", BindingFlags.Instance | BindingFlags.Public);
         //public bool DoTimeline(Rect timeRect)
         doTimeline = timeControlType.GetMethod("DoTimeline", BindingFlags.Instance | BindingFlags.Public);
+
+        // float
+        SetPropertyByName("SrcStartTime", timeControlInstance, (float)0);
+        SetPropertyByName("SrcStopTime", timeControlInstance, playMax);
+        SetPropertyByName("SrcName", timeControlInstance, "BaseName");
+        SetPropertyByName("HasExitTime", timeControlInstance, true);
+        //bool
+        SetPropertyByName("srcLoop", timeControlInstance, false);
+        SetPropertyByName("dstLoop", timeControlInstance, false);
+
+        SetPropertyByName("TransitionStartTime", timeControlInstance, playMax);
+        SetPropertyByName("TransitionStopTime", timeControlInstance, playMax + .5f);
+
+        SetPropertyByName("Time", timeControlInstance, .5f);
+
+        SetPropertyByName("DstStartTime", timeControlInstance, playMax);
+        SetPropertyByName("DstStopTime", timeControlInstance, playMax + .5f);
+
+        SetPropertyByName("SampleStopTime", timeControlInstance, stopTime);
+
+        SetPropertyByName("DstName", timeControlInstance, "Blend2ClipName");
+
+        SetPropertyByName("DstName", timeControlInstance, "Blend2ClipName");
+        SetPropertyByName("DstName", timeControlInstance, "Blend2ClipName");
+
+        // TransitionStartTime
+        // var srcLoop = timeControlType.GetProperty("srcLoop", BindingFlags.Instance | BindingFlags.Public);
+
+        // m_Timeline.TransitionStopTime = m_Timeline.TransitionStartTime + transitionDuration;
+        //
+        // m_Timeline.Time = m_AvatarPreview.timeControl.currentTime;
+        //
+        // m_Timeline.DstStartTime = m_Timeline.TransitionStartTime - m_RefTransition.offset * dstStateDuration;
+        // m_Timeline.DstStopTime =  m_Timeline.DstStartTime + dstStateDuration;
+        //
+        // m_Timeline.SampleStopTime = m_AvatarPreview.timeControl.stopTime;
+        //
+        // if (m_Timeline.TransitionStopTime == Mathf.Infinity)
+        //     m_Timeline.TransitionStopTime = Mathf.Min(m_Timeline.DstStopTime, m_Timeline.SrcStopTime);
+        //
+        //
+        // m_Timeline.DstName = m_RefDstState.name;
+        //
+        // m_Timeline.SrcPivotList = m_SrcPivotList;
+        // m_Timeline.DstPivotList = m_DstPivotList;
+
         Debug.Log(timeControlInstance);
+
+        // public void SetTransition(AnimatorStateTransition transition, AnimatorState sourceState, AnimatorState destinationState, AnimatorControllerLayer srcLayer, Animator previewObject)
     }
+
+    void SetPropertyByName(string name, object instance, params object[] value)
+    {
+        var property = instance.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public);
+        property.SetMethod.Invoke(instance, value);
+        // property.SetValue(instance, value);
+    }
+
+    object GetPropertyByName(string name, object instance)
+    {
+        var property = instance.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public);
+        return property.GetMethod.Invoke(instance, new object[] { });
+        // property.SetValue(instance, value);
+    }
+
+    private void Set(AnimatorStateTransition transition, AnimatorState srcState, AnimatorState dstState)
+    {
+        set.Invoke(timeControlInstance, new object[] { transition, srcState, dstState });
+    }
+
+    private float stopTime;
 
     private void DoTimeline(Rect timeRect)
     {
-        doTimeline.Invoke(timeControlInstance, new object[] { timeRect });
+        if (timeControlInstance != null && doTimeline != null)
+        {
+            doTimeline.Invoke(timeControlInstance, new object[] { timeRect });
+            var ChangeTime = (float)GetPropertyByName("Time", timeControlInstance);
+            ChangeTime = Mathf.Clamp(ChangeTime, 0, stopTime);
+            SetPropertyByName("Time", timeControlInstance, ChangeTime);
+        }
     }
 
     private void ReplayceDisplayGO()
@@ -171,10 +249,28 @@ public class AnimPreviewWindow : EditorWindow
             displayAnimator.StartRecording((int)length * 10);
             isRecoading = true;
             isRecoadComplete = false;
+
             //displayAnimator.runtimeAnimatorController.animationClips
 
             // BlendTree bt = new BlendTree().CreateBlendTreeChild(.5f);
             // bt.AddChild();
+
+            // var animatorController = displayAnimator.runtimeAnimatorController as AnimatorController;
+            // foreach (var layer in animatorController.layers)
+            // {
+            //     var stateMachine = layer.stateMachine;
+            //     foreach (var state in stateMachine.states)
+            //     {
+            //         // state.state.motion
+            //         var transitionsLength = state.state.transitions.Length;
+            //         var t = state.state.transitions[0];
+            //         // new AnimatorStateTransition(){};
+            //         Debug.Log(state.state.name + "___" + transitionsLength);
+            //         // Set(t, state.state, t.destinationState);
+            //         return;
+            //     }
+            // }
+            InitTimeline();
         }
     }
 
@@ -216,7 +312,7 @@ public class AnimPreviewWindow : EditorWindow
             mPreviewRenderUtility.camera.transform.SetPositionAndRotation(new Vector3(0, 0, -10), Quaternion.identity);
         }
 
-        playValue = GUILayout.HorizontalSlider(playValue, playMin, playMax);
+        // playValue = GUILayout.HorizontalSlider(playValue, playMin, playMax);
 
         GUILayout.EndHorizontal();
 
@@ -239,7 +335,7 @@ public class AnimPreviewWindow : EditorWindow
         var drawRect = new Rect(0, 20, this.position.width, TimelineHeight);
         DoTimeline(drawRect);
     }
-    
+
     private float timer;
     private bool isRecoading = false;
     private bool isRecoadComplete = false;
@@ -265,6 +361,7 @@ public class AnimPreviewWindow : EditorWindow
                     isRecoadComplete = true;
                     displayAnimator.StopRecording();
                     playMax = displayAnimator.recorderStopTime;
+                    stopTime = playMax * 2;
                     playValue = playMin = displayAnimator.recorderStartTime; //+Time.deltaTime;
 
                     displayAnimator.StartPlayback();
