@@ -5,8 +5,8 @@
 */
 
 using System;
+using System.Reflection;
 using UnityEditor;
-using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -37,13 +37,15 @@ public class AnimPreviewWindow : EditorWindow
 
     private Image img;
 
+    private const float TimelineHeight = 150; 
+    
     void OnEnable()
     {
         this.titleContent.text = "动画混合预览窗口";
         EditorApplication.update += Tick;
 
         img = new Image();
-        img.style.top = 20;
+        img.style.top = 20 + TimelineHeight;
         rootVisualElement.Add(img);
         var tips = new Label("中键移动, 左键旋转, 滚轮缩放, F重置");
         img.Add(tips);
@@ -113,6 +115,37 @@ public class AnimPreviewWindow : EditorWindow
         displayGO.transform.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(0, 45, 0));
         UpdateBounds();
         DestroyImmediate(displayPrefab);
+
+        InitTimeline();
+    }
+
+    private object timeControlInstance;
+    private MethodInfo set, setTransition, doTransitionPreview, onInteractivePreviewGUI, doTimeline;
+
+    private void InitTimeline()
+    {
+        // TimeArea t = new TimeArea(true, true, true);
+        var timeControlType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.TimelineControl");
+        var constructor = timeControlType.GetConstructor(Type.EmptyTypes);
+        timeControlInstance = constructor.Invoke(new object[] { });
+        // public void Set(AnimatorStateTransition transition, AnimatorState srcState, AnimatorState dstState)
+        set = timeControlType.GetMethod("Set", BindingFlags.Instance | BindingFlags.Public);
+        // public void SetTransition(AnimatorStateTransition transition, AnimatorState sourceState, AnimatorState destinationState, AnimatorControllerLayer srcLayer, Animator previewObject)
+        setTransition = timeControlType.GetMethod("SetTransition", BindingFlags.Instance | BindingFlags.Public);
+        //public void DoTransitionPreview()
+        doTransitionPreview =
+            timeControlType.GetMethod("DoTransitionPreview", BindingFlags.Instance | BindingFlags.Public);
+        //public void OnInteractivePreviewGUI(Rect r, GUIStyle background)
+        onInteractivePreviewGUI =
+            timeControlType.GetMethod("OnInteractivePreviewGUI", BindingFlags.Instance | BindingFlags.Public);
+        //public bool DoTimeline(Rect timeRect)
+        doTimeline = timeControlType.GetMethod("DoTimeline", BindingFlags.Instance | BindingFlags.Public);
+        Debug.Log(timeControlInstance);
+    }
+
+    private void DoTimeline(Rect timeRect)
+    {
+        doTimeline.Invoke(timeControlInstance, new object[] { timeRect });
     }
 
     private void ReplayceDisplayGO()
@@ -125,16 +158,17 @@ public class AnimPreviewWindow : EditorWindow
             displayGO.transform.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(0, 45, 0));
             UpdateBounds();
             displayAnimator = displayGO.GetComponentInChildren<Animator>();
-            displayAnimator.Play("idle");
+            // displayAnimator.Play("idle");
 
-            displayAnimator.CrossFade("running", 0, 0, 0);
+            displayAnimator.CrossFade("jump", 0, 0, 0);
             displayAnimator.Update(0f);
             var playClip = displayAnimator.GetCurrentAnimatorClipInfo(0)[0].clip;
             playMax = playClip.length; //displayAnimator.GetCurrentAnimatorClipInfo(0)[0].clip.length;
             Selection.activeObject = displayAnimator.GetCurrentAnimatorClipInfo(0)[0].clip;
             playValue = 0;
             displayAnimator.StopPlayback();
-            displayAnimator.StartRecording((int) (playClip.frameRate * playClip.length));
+            var length = playClip.frameRate * playClip.length;
+            displayAnimator.StartRecording((int)length * 10);
             isRecoading = true;
             isRecoadComplete = false;
             //displayAnimator.runtimeAnimatorController.animationClips
@@ -182,7 +216,7 @@ public class AnimPreviewWindow : EditorWindow
             mPreviewRenderUtility.camera.transform.SetPositionAndRotation(new Vector3(0, 0, -10), Quaternion.identity);
         }
 
-        playValue = GUILayout.HorizontalSlider(playValue, 0, playMax);
+        playValue = GUILayout.HorizontalSlider(playValue, playMin, playMax);
 
         GUILayout.EndHorizontal();
 
@@ -201,8 +235,11 @@ public class AnimPreviewWindow : EditorWindow
         camera.transform.RotateAround(lookAtCenter.position, camera.transform.right, -m_PreviewDir.y);
         // GUI.Box(drawRect, texture);
         GUI.changed = true;
-    }
 
+        var drawRect = new Rect(0, 20, this.position.width, TimelineHeight);
+        DoTimeline(drawRect);
+    }
+    
     private float timer;
     private bool isRecoading = false;
     private bool isRecoadComplete = false;
@@ -211,16 +248,16 @@ public class AnimPreviewWindow : EditorWindow
     {
         if (displayAnimator != null)
         {
-            var drawRect = new Rect(0, 20, this.position.width, this.position.height - 20);
+            var drawRect = new Rect(0, 20, this.position.width, this.position.height - 20 - TimelineHeight);
             mPreviewRenderUtility.BeginPreview(drawRect, GUIStyle.none);
             mPreviewRenderUtility.camera.Render();
             var texture = mPreviewRenderUtility.EndPreview();
             img.image = texture;
             img.style.height = drawRect.height;
+            // img.style.position = 
 
             if (isRecoading)
             {
-                timer += Time.deltaTime;
                 if (timer > playMax)
                 {
                     timer = 0;
@@ -236,12 +273,15 @@ public class AnimPreviewWindow : EditorWindow
                 {
                     displayAnimator.Update(Time.deltaTime);
                 }
+
+                timer += Time.deltaTime;
             }
             else if (isRecoadComplete)
             {
                 // playValue = Mathf.Min(playValue, playMax);
                 // playValue = Mathf.Max(playValue, playMin);
                 displayAnimator.playbackTime = playValue;
+                displayAnimator.Update(0.0f);
             }
         }
     }
