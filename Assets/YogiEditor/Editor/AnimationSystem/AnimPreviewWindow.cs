@@ -244,6 +244,7 @@ public class AnimPreviewWindow : EditorWindow
             playMax = playClip.length; //displayAnimator.GetCurrentAnimatorClipInfo(0)[0].clip.length;
             Selection.activeObject = displayAnimator.GetCurrentAnimatorClipInfo(0)[0].clip;
             playValue = 0;
+            timer = 0;
             displayAnimator.StopPlayback();
             var length = playClip.frameRate * playClip.length;
             displayAnimator.StartRecording((int)length * 10);
