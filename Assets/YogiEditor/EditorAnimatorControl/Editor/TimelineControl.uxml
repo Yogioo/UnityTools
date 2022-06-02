@@ -1,19 +1,19 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
     <ui:VisualElement name="TimelineControl">
-        <ui:TextField picking-mode="Ignore" label="First State Name" name="First" />
-        <ui:Toggle label="IsLoop" name="IsLoop">
-            <uie:FloatField label="Speed" value="1" name="PlaySpeed" />
+        <ui:TextField picking-mode="Ignore" label="First State Name" name="First" binding-path="FirstStateName" />
+        <ui:Toggle label="IsLoop" name="IsLoop" binding-path="IsLoop">
+            <uie:FloatField label="PlaySpeed" value="0" name="PlaySpeed" binding-path="PlaySpeed" />
         </ui:Toggle>
-        <ui:Toggle label="Is Cross Fade" name="IsCrossFade" />
-        <ui:TextField picking-mode="Ignore" label="Seconed State Name" name="SecondStateName" />
-        <uie:FloatField label="Start Cross Fade Time" value="0" name="StartCrossFadeTime" />
-        <ui:Toggle label="Is Fixed Fade" name="IsFixedTime" />
-        <uie:FloatField label="Fixed Fade Time" value="0" name="FixedFadeTime" />
-        <uie:FloatField label="Normalized Fade Time" value="0" name="NormalizedFadeTime" />
-        <uie:FloatField label="Offset Time" value="0" name="OffsetTime" />
+        <ui:Toggle label="Is Cross Fade" name="IsCrossFade" binding-path="IsCrossFade" />
+        <ui:TextField picking-mode="Ignore" label="Seconed State Name" name="SecondStateName" binding-path="SecondStateName" />
+        <uie:FloatField label="Start Cross Fade Time" value="0" name="StartCrossFadeTime" binding-path="StartCrossFadeTime" />
+        <ui:Toggle label="IsFixedFade" name="IsFixedTime" binding-path="IsFixedFade" />
+        <uie:FloatField label="Fixed Fade Time" value="0" name="FixedFadeTime" binding-path="FixedFadeTime" />
+        <uie:FloatField label="Normalized Fade Time" value="0" name="NormalizedFadeTime" binding-path="NormalizeFadeTime" />
+        <uie:FloatField label="Offset Time" value="0" name="OffsetTime" binding-path="TimeOffset" />
         <ui:Button text="Bake" name="Bake" />
         <ui:Button text="Play" name="Play" />
-        <ui:Button text="Stop" name="Stop" />
+        <ui:Button text="Pause" name="Pause" />
         <ui:Slider picking-mode="Ignore" value="42" high-value="100" name="PlayTime" style="margin-left: 0; margin-right: 0;" />
     </ui:VisualElement>
 </ui:UXML>

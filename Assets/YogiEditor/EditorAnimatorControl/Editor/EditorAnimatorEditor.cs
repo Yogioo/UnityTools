@@ -11,7 +11,7 @@ namespace EditorAnimatorControl.Editor
     [CustomEditor(typeof(EditorAnimator))]
     public class EditorAnimatorEditor : UnityEditor.Editor
     {
-        #region Field
+        #region Config
 
         public string m_FirstStateName;
 
@@ -27,6 +27,10 @@ namespace EditorAnimatorControl.Editor
         private float m_NormalizeFadeTime;
         private float m_FixedFadeTime;
         private float m_TimeOffset;
+
+        #endregion
+
+        #region TMP
 
         /// <summary>
         /// 滑动杆的当前时间
