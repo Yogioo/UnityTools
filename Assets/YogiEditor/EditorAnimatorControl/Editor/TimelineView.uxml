@@ -1,0 +1,27 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:ScrollView show-horizontal-scroller="false" show-vertical-scroller="false" name="TimelineView" style="height: 120px; background-color: rgba(41, 41, 41, 255);">
+        <ui:VisualElement name="BGLineContainer" style="position: absolute;">
+            <ui:VisualElement name="BGLine" style="position: absolute; left: 0; width: 2px; height: 120px; background-color: rgb(99, 99, 99);" />
+            <ui:VisualElement name="BGLine" style="position: absolute; left: 29px; width: 1px; height: 120px; background-color: rgb(99, 99, 99);" />
+        </ui:VisualElement>
+        <ui:VisualElement name="EventContainer" style="height: 20px; width: 1190px; background-color: rgba(106, 106, 106, 255);">
+            <ui:VisualElement name="EventBT" style="width: 5px; height: 20px; position: absolute; left: 494.75px; background-color: rgba(255, 222, 0, 255);" />
+        </ui:VisualElement>
+        <ui:VisualElement name="Row" style="height: 50px; width: 1000px; background-color: rgba(48, 48, 48, 255); flex-direction: row; flex-wrap: nowrap;">
+            <ui:VisualElement name="Left" style="width: 10px; background-color: rgb(94, 0, 0); height: 50px;" />
+            <ui:VisualElement name="Mid" style="width: 980px; background-color: rgb(35, 34, 60); height: 50px; align-items: center; flex-wrap: wrap; flex-direction: column; justify-content: center;">
+                <ui:Label text="TestClipName" name="ClipName" style="color: rgba(214, 153, 255, 255); font-size: 12px; -unity-font-style: bold; -unity-text-align: upper-center;" />
+            </ui:VisualElement>
+            <ui:VisualElement name="Right" style="width: 10px; background-color: rgb(94, 0, 0); height: 50px;" />
+        </ui:VisualElement>
+        <ui:VisualElement name="Row" style="height: 50px; width: 1000px; background-color: rgba(48, 48, 48, 255); -unity-background-scale-mode: stretch-to-fill; flex-direction: row; flex-wrap: nowrap; left: 192px;">
+            <ui:VisualElement name="Left" style="width: 10px; background-color: rgb(94, 0, 0); height: 50px;" />
+            <ui:VisualElement name="Mid" style="width: 980px; background-color: rgb(35, 34, 60); height: 50px; align-items: center; flex-wrap: wrap; flex-direction: column; justify-content: center;">
+                <ui:Label text="TestClipName" name="ClipName" style="color: rgba(214, 153, 255, 255); font-size: 12px; -unity-font-style: bold;" />
+            </ui:VisualElement>
+            <ui:VisualElement name="Right" style="width: 10px; background-color: rgb(94, 0, 0); height: 50px;" />
+        </ui:VisualElement>
+        <ui:VisualElement name="FadeBox" style="position: absolute; height: 120px; width: 76px; left: 120px; background-color: rgba(0, 122, 255, 0.17);" />
+        <ui:VisualElement name="Line" style="position: absolute; left: 54px; width: 1px; height: 120px; background-color: rgb(42, 76, 255);" />
+    </ui:ScrollView>
+</ui:UXML>

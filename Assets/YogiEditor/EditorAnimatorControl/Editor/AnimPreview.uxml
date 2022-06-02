@@ -1,0 +1,5 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="AnimPreview">
+        <ui:VisualElement name="PreviewImg" style="background-color: rgba(255, 0, 0, 255); width: 200px; height: 100px;" />
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,19 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="TimelineControl">
+        <ui:TextField picking-mode="Ignore" label="First State Name" name="First" />
+        <ui:Toggle label="IsLoop" name="IsLoop">
+            <uie:FloatField label="Speed" value="1" name="PlaySpeed" />
+        </ui:Toggle>
+        <ui:Toggle label="Is Cross Fade" name="IsCrossFade" />
+        <ui:TextField picking-mode="Ignore" label="Seconed State Name" name="SecondStateName" />
+        <uie:FloatField label="Start Cross Fade Time" value="0" name="StartCrossFadeTime" />
+        <ui:Toggle label="Is Fixed Fade" name="IsFixedTime" />
+        <uie:FloatField label="Fixed Fade Time" value="0" name="FixedFadeTime" />
+        <uie:FloatField label="Normalized Fade Time" value="0" name="NormalizedFadeTime" />
+        <uie:FloatField label="Offset Time" value="0" name="OffsetTime" />
+        <ui:Button text="Bake" name="Bake" />
+        <ui:Button text="Play" name="Play" />
+        <ui:Button text="Stop" name="Stop" />
+        <ui:Slider picking-mode="Ignore" value="42" high-value="100" name="PlayTime" style="margin-left: 0; margin-right: 0;" />
+    </ui:VisualElement>
+</ui:UXML>
