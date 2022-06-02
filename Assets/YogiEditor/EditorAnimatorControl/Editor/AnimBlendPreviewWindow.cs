@@ -218,6 +218,9 @@ namespace EditorAnimatorControl.Editor
                         m_MouseDragDelta = e.delta * (!e.shift?1:3);
                     }
                     break;
+                case EventType.ScrollWheel:
+                    m_MouseWheelDelta += -HandleUtility.niceMouseDeltaZoom;
+                    break;
                 case EventType.KeyDown:
                     if (e.keyCode == KeyCode.F)
                     {
@@ -257,9 +260,6 @@ namespace EditorAnimatorControl.Editor
             var animPreviewTree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(AnimPreviewUXMLPath);
             animPreviewTree.CloneTree(rootVisualElement);
             m_PreviewImgUI = rootVisualElement.Q<VisualElement>("PreviewImg");
-
-            // Mouse Control
-            m_PreviewImgUI.RegisterCallback<WheelEvent>((x) => { m_MouseWheelDelta = x.delta.y; });
         }
 
         private void UpdateUIElements()
