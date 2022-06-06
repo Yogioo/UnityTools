@@ -77,7 +77,8 @@ namespace EditorAnimatorControl.Editor
 
         // private Button m_BakeBtn,
         private Button m_PlayBtn,
-            m_PauseBtn;
+            m_PauseBtn,
+            m_SelectBtn;
 
         /// <summary>
         /// 预览图片
@@ -173,6 +174,7 @@ namespace EditorAnimatorControl.Editor
             // 生成物体
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
             ReplacePreviewGO(prefab);
+            SetUpAnimator();
             InitAnimControl();
             InitAllEventUI();
             WaitToRemap();
@@ -204,6 +206,7 @@ namespace EditorAnimatorControl.Editor
             {
                 GameObject.DestroyImmediate(m_PreviewImg);
             }
+
             m_PreviewImg = RenderPreview();
             UpdateUIElements();
             AnimControlUpdate();
@@ -212,6 +215,39 @@ namespace EditorAnimatorControl.Editor
         private void OnGUI()
         {
             UpdateMousePos();
+        }
+
+        #endregion
+
+        #region API
+
+        public async void SetTarget()
+        {
+            var path = EditorUtility.OpenFilePanel("Select Prefab(Contain Animator)", "Assets/", "prefab");
+            if (path != String.Empty)
+            {
+                path = path.Substring(path.IndexOf("Assets", StringComparison.Ordinal));
+                var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                ReplacePreviewGO(go);
+                
+                SetUpAnimator();
+                m_HasBaked = false;
+                await Task.Yield();
+                await Task.Yield();
+                Play();
+            }
+        }
+
+        public void AddEvent()
+        {
+        }
+
+        public void RemoveEvent()
+        {
+        }
+
+        public void RefreshEvent()
+        {
         }
 
         #endregion
@@ -373,7 +409,7 @@ namespace EditorAnimatorControl.Editor
         private Texture2D RenderPreview()
         {
             m_PreviewRenderUtility.BeginPreview(new Rect(0, 0, m_RenderSize.x, m_RenderSize.y), GUIStyle.none);
-            m_PreviewRenderUtility.Render(); 
+            m_PreviewRenderUtility.Render();
             return m_PreviewRenderUtility.EndStaticPreview();
         }
 
@@ -390,6 +426,7 @@ namespace EditorAnimatorControl.Editor
             // m_BakeBtn = m_TimelineControlUI.Q<Button>("Bake");
             m_PlayBtn = m_TimelineControlUI.Q<Button>("Play");
             m_PauseBtn = m_TimelineControlUI.Q<Button>("Pause");
+            m_SelectBtn = m_TimelineControlUI.Q<Button>("Select");
 
             var timelineViewUXML = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(TimelineViewUXMLPath);
             timelineViewUXML.CloneTree(rootVisualElement);
@@ -427,6 +464,14 @@ namespace EditorAnimatorControl.Editor
 
         #region AnimControl
 
+        private void SetUpAnimator()
+        {
+            m_Animator = m_PreviewGo.GetComponentInChildren<Animator>();
+            if (m_Animator == null)
+            {
+                throw new Exception("The Target Has No Animator Component! Require Animator Component!");
+            }
+        }
         /// <summary>
         /// 初始化动画控制
         /// </summary>
@@ -434,8 +479,8 @@ namespace EditorAnimatorControl.Editor
         {
             m_HasBaked = false;
 
-            m_Animator = m_PreviewGo.GetComponent<Animator>();
 
+            
             m_TimeSlider.RegisterValueChangedCallback(x =>
             {
                 m_AnimFadeData.IsAutoPlay = false;
@@ -446,6 +491,7 @@ namespace EditorAnimatorControl.Editor
             // m_BakeBtn.clicked += Bake;
             m_PlayBtn.clicked += Play;
             m_PauseBtn.clicked += Pause;
+            m_SelectBtn.clicked += SetTarget;
 
             // 当属性发生更改的时候 自动Bake
             // m_TimelineControlUI.RegisterCallback<ChangeEvent<float>>((x) => { Bake(); });
@@ -607,6 +653,11 @@ namespace EditorAnimatorControl.Editor
                 return;
             }
 
+            if (!m_HasBaked)
+            {
+                Bake();
+            }
+
             m_IsPlaying = true;
             m_AnimFadeData.IsAutoPlay = true;
         }
@@ -637,6 +688,7 @@ namespace EditorAnimatorControl.Editor
                 {
                     m_IsPlaying = true;
                 }
+
                 if (m_IsPlaying)
                 {
                     m_CurTime += Time.deltaTime * m_AnimFadeData.PlaySpeed;
@@ -660,7 +712,9 @@ namespace EditorAnimatorControl.Editor
 
             if (m_AnimFadeData != null)
             {
+                m_AnimFadeData.StartCrossFadeTime = Mathf.Min(m_AnimFadeData.StartCrossFadeTime, m_FistClipLength);
                 m_AnimFadeData.StartCrossFadeTime = Mathf.Max(m_AnimFadeData.StartCrossFadeTime, 0);
+                
                 m_AnimFadeData.FixedFadeTime = Mathf.Max(m_AnimFadeData.FixedFadeTime, 0);
                 m_AnimFadeData.NormalizeFadeTime = Mathf.Max(m_AnimFadeData.NormalizeFadeTime, 0);
                 m_AnimFadeData.TimeOffset = Mathf.Max(m_AnimFadeData.TimeOffset, 0);
@@ -753,7 +807,6 @@ namespace EditorAnimatorControl.Editor
 
                     UpdateTimelineView();
                 }));
-
         }
 
         private void RemapGridSize()
@@ -810,7 +863,7 @@ namespace EditorAnimatorControl.Editor
                 m_AnimFadeData.StartCrossFadeTime - m_AnimFadeData.TimeOffset);
             progressLine.style.left = m_CurTime * m_GridSize;
             animOneNameLabel.text = m_AnimOneName;
-            animTwoNameLabel.text = m_AnimTwoName; 
+            animTwoNameLabel.text = m_AnimTwoName;
 
             animTwo.style.display = m_AnimFadeData.IsCrossFade ? DisplayStyle.Flex : DisplayStyle.None;
             m_TimelineViewUI.style.height =
@@ -821,8 +874,8 @@ namespace EditorAnimatorControl.Editor
             fadeSizeHandler.style.left = fadeBox.style.left.value.value + fadeBox.style.width.value.value;
 
             fadeSizeHandler.style.display = fadeBox.style.display =
-                m_AnimFadeData.IsCrossFade ? DisplayStyle.Flex : DisplayStyle.None; 
-            
+                m_AnimFadeData.IsCrossFade ? DisplayStyle.Flex : DisplayStyle.None;
+
             foreach (var eventData in m_AnimFadeData.Evnets)
             {
                 if (EventsUI.TryGetValue(eventData, out var ui))
