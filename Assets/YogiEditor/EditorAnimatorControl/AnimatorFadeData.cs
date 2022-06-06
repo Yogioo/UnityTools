@@ -9,7 +9,10 @@ namespace EditorAnimatorControl
         /// 第一个动画节点名
         /// </summary>
         public string FirstStateName = "idle";
-
+        /// <summary>
+        /// 是否自动播放
+        /// </summary>
+        public bool IsAutoPlay = true;
         /// <summary>
         /// 是否循环
         /// </summary>
@@ -19,7 +22,7 @@ namespace EditorAnimatorControl
         /// 播放速度
         /// </summary>
         public float PlaySpeed = 1.0f;
-
+        
         /// <summary>
         /// 是否混合其他动画
         /// </summary>
@@ -60,6 +63,9 @@ namespace EditorAnimatorControl
         /// </summary>
         public int AnimLayer = 0;
 
+
+
+        
         /// <summary>
         /// 动画的事件
         /// </summary>

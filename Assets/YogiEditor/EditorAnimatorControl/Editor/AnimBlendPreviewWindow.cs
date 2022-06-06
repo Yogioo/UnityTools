@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Cursor = UnityEngine.Cursor;
 using Random = UnityEngine.Random;
 
 namespace EditorAnimatorControl.Editor
@@ -37,8 +37,8 @@ namespace EditorAnimatorControl.Editor
 
         private const string TimelineViewUXMLPath = @"Assets\YogiEditor\EditorAnimatorControl\Editor\TimelineView.uxml";
 
-        private const float TimelineControlHeight = 200;
-        private const float TimelineViewHeight = 180;
+        private const float TimelineControlHeight = 246;
+        private const float TimelineViewHeight = 120;
 
 
         private const float m_TimelineDefaultHeight = 120;
@@ -73,8 +73,8 @@ namespace EditorAnimatorControl.Editor
         private VisualElement m_TimelineViewUI;
         private Slider m_TimeSlider;
 
-        private Button m_BakeBtn,
-            m_PlayBtn,
+        // private Button m_BakeBtn,
+        private Button m_PlayBtn,
             m_PauseBtn;
 
         /// <summary>
@@ -153,8 +153,9 @@ namespace EditorAnimatorControl.Editor
 
         private bool m_HasBaked = false;
 
+
         // --------------- Timeline View ---------------
-        private VisualElement animOne, animTwo, progressLine, eventContainer, bgLineContainer, fadeBox;
+        private VisualElement animOne, animTwo, progressLine, eventContainer, bgLineContainer, fadeBox, fadeSizeHandler;
         private Label animOneNameLabel, animTwoNameLabel;
 
         #endregion
@@ -176,6 +177,20 @@ namespace EditorAnimatorControl.Editor
             ReplacePreviewGO(prefab);
             InitAnimControl();
             InitAllEventUI();
+            WaitToRemap();
+        }
+
+        async void WaitToRemap()
+        {
+            await Task.Yield();
+            await Task.Yield();
+            await Task.Yield();
+            await Task.Yield();
+            await Task.Yield();
+            await Task.Yield();
+            await Task.Yield();
+            Bake();
+            RemapGridSize();
         }
 
         private void OnDisable()
@@ -187,6 +202,10 @@ namespace EditorAnimatorControl.Editor
         private void Update()
         {
             UpdateScene();
+            if (m_PreviewImg != null)
+            {
+                GameObject.DestroyImmediate(m_PreviewImg);
+            }
             m_PreviewImg = RenderPreview();
             UpdateUIElements();
             AnimControlUpdate();
@@ -342,19 +361,21 @@ namespace EditorAnimatorControl.Editor
         {
             if (m_IsReset)
             {
+                m_LookAtCenter.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+
+
                 m_CamTrans.position = new Vector3(0, 0, -10);
                 m_CamTrans.forward = Vector3.forward;
                 CameraRotate(new Vector2(50, 45));
 
                 m_IsReset = false;
-                m_LookAtCenter.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             }
         }
 
         private Texture2D RenderPreview()
         {
             m_PreviewRenderUtility.BeginPreview(new Rect(0, 0, m_RenderSize.x, m_RenderSize.y), GUIStyle.none);
-            m_PreviewRenderUtility.Render();
+            m_PreviewRenderUtility.Render(); 
             return m_PreviewRenderUtility.EndStaticPreview();
         }
 
@@ -368,7 +389,7 @@ namespace EditorAnimatorControl.Editor
             animControlUXML.CloneTree(rootVisualElement);
             m_TimelineControlUI = rootVisualElement.Q<VisualElement>("TimelineControl");
             m_TimeSlider = m_TimelineControlUI.Q<Slider>("PlayTime");
-            m_BakeBtn = m_TimelineControlUI.Q<Button>("Bake");
+            // m_BakeBtn = m_TimelineControlUI.Q<Button>("Bake");
             m_PlayBtn = m_TimelineControlUI.Q<Button>("Play");
             m_PauseBtn = m_TimelineControlUI.Q<Button>("Pause");
 
@@ -401,6 +422,7 @@ namespace EditorAnimatorControl.Editor
             m_RenderSize.y = this.position.height - TimelineControlHeight - TimelineViewHeight
                              + (m_AnimFadeData.IsCrossFade ? 0 : m_TimelineRowHeight);
             m_RenderSize.x = this.position.width;
+            m_RenderSize = Vector2.Max(m_RenderSize, Vector2.one);
         }
 
         #endregion
@@ -418,25 +440,27 @@ namespace EditorAnimatorControl.Editor
 
             m_TimeSlider.RegisterValueChangedCallback(x =>
             {
+                m_AnimFadeData.IsAutoPlay = false;
                 m_IsPlaying = false;
                 m_CurTime = x.newValue;
                 ManualUpdate();
             });
-            m_BakeBtn.clicked += Bake;
+            // m_BakeBtn.clicked += Bake;
             m_PlayBtn.clicked += Play;
             m_PauseBtn.clicked += Pause;
 
-            //TODO: 当属性发生更改的时候 自动Bake
-            
+            // 当属性发生更改的时候 自动Bake
             // m_TimelineControlUI.RegisterCallback<ChangeEvent<float>>((x) => { Bake(); });
             RegisterBakeFloat("StartCrossFadeTime", "FixedFadeTime", "NormalizedFadeTime", "OffsetTime");
+
             void RegisterBakeFloat(params string[] p_UIName)
             {
                 foreach (var p_Name in p_UIName)
                 {
-                    m_TimelineControlUI.Q<VisualElement>(p_Name).RegisterCallback<ChangeEvent<float>>(x=>{Bake();});
+                    m_TimelineControlUI.Q<VisualElement>(p_Name).RegisterCallback<ChangeEvent<float>>(x => { Bake(); });
                 }
             }
+
             m_TimelineControlUI.RegisterCallback<ChangeEvent<string>>((x) => { Bake(); });
             m_TimelineControlUI.RegisterCallback<ChangeEvent<bool>>((x) => { Bake(); });
 
@@ -545,7 +569,8 @@ namespace EditorAnimatorControl.Editor
             m_Animator.StartPlayback();
             m_Duration = m_Animator.recorderStopTime;
 
-            m_TimeSlider.value = 0;
+            // m_TimeSlider.value = 0;
+            m_TimeSlider.SetValueWithoutNotify(0);
             m_OnRefreshMaxTime?.Invoke();
 
             m_HasBaked = true;
@@ -585,6 +610,7 @@ namespace EditorAnimatorControl.Editor
             }
 
             m_IsPlaying = true;
+            m_AnimFadeData.IsAutoPlay = true;
         }
 
         /// <summary>
@@ -602,28 +628,44 @@ namespace EditorAnimatorControl.Editor
         private void Pause()
         {
             m_IsPlaying = false;
+            m_AnimFadeData.IsAutoPlay = false;
         }
 
         private void AnimControlUpdate()
         {
-            if (m_HasBaked && m_IsPlaying && m_Animator)
+            if (m_HasBaked && m_Animator)
             {
-                m_CurTime += Time.deltaTime * m_AnimFadeData.PlaySpeed;
-                if (m_CurTime >= m_Duration)
+                if (m_AnimFadeData.IsAutoPlay)
                 {
-                    if (m_AnimFadeData.IsLoop)
+                    m_IsPlaying = true;
+                }
+                if (m_IsPlaying)
+                {
+                    m_CurTime += Time.deltaTime * m_AnimFadeData.PlaySpeed;
+                    if (m_CurTime >= m_Duration)
                     {
-                        m_CurTime = 0;
-                        return;
+                        if (m_AnimFadeData.IsLoop)
+                        {
+                            m_CurTime = 0;
+                            return;
+                        }
+
+                        m_IsPlaying = false;
+                        m_CurTime = m_Duration;
                     }
 
-                    m_IsPlaying = false;
-                    m_CurTime = m_Duration;
+                    m_Animator.playbackTime = m_CurTime;
+                    m_TimeSlider.SetValueWithoutNotify(m_CurTime);
+                    this.m_Animator.Update(0);
                 }
+            }
 
-                m_Animator.playbackTime = m_CurTime;
-                m_TimeSlider.SetValueWithoutNotify(m_CurTime);
-                this.m_Animator.Update(0);
+            if (m_AnimFadeData != null)
+            {
+                m_AnimFadeData.StartCrossFadeTime = Mathf.Max(m_AnimFadeData.StartCrossFadeTime, 0);
+                m_AnimFadeData.FixedFadeTime = Mathf.Max(m_AnimFadeData.FixedFadeTime, 0);
+                m_AnimFadeData.NormalizeFadeTime = Mathf.Max(m_AnimFadeData.NormalizeFadeTime, 0);
+                m_AnimFadeData.TimeOffset = Mathf.Max(m_AnimFadeData.TimeOffset, 0);
             }
         }
 
@@ -631,7 +673,7 @@ namespace EditorAnimatorControl.Editor
 
         #region TimelineView
 
-        private Dictionary<EventData, VisualElement> EvnetsUI;
+        private Dictionary<EventData, VisualElement> EventsUI;
 
         void InitTimelineView()
         {
@@ -640,9 +682,21 @@ namespace EditorAnimatorControl.Editor
                 m_GridSize += -x.delta.y * (!x.shiftKey ? 1 : 10);
                 m_OnRefreshMaxTime?.Invoke();
             });
+            m_TimelineViewUI.AddManipulator(new ContextualMenuManipulator(x =>
+            {
+                x.menu.AppendAction("Resize", a =>
+                {
+                    Bake();
+                    RemapGridSize();
+                });
+            }));
             var rows = m_TimelineViewUI.Query<VisualElement>("Row").ToList();
             animOne = rows[0];
             animTwo = rows[1];
+
+            var twoMid = animTwo.Q<VisualElement>("Mid");
+
+
             animOneNameLabel = animOne.Q<Label>("ClipName");
             animTwoNameLabel = animTwo.Q<Label>("ClipName");
 
@@ -674,15 +728,51 @@ namespace EditorAnimatorControl.Editor
             };
 
             fadeBox = m_TimelineViewUI.Q<VisualElement>("FadeBox");
+            fadeSizeHandler = m_TimelineViewUI.Q<VisualElement>("FadeSizeHandler");
+
+            // Drag Timeline Clip
+            twoMid.AddManipulator(new DraggerManipulator(MouseButton.LeftMouse, (x) =>
+            {
+                m_AnimFadeData.TimeOffset -= x.x / m_GridSize;
+                m_AnimFadeData.TimeOffset = Mathf.Max(m_AnimFadeData.TimeOffset, 0);
+            }));
+            fadeBox.AddManipulator(new DraggerManipulator(MouseButton.LeftMouse,
+                (x) => { m_AnimFadeData.StartCrossFadeTime += x.x / m_GridSize; }));
+            fadeSizeHandler.AddManipulator(new DraggerManipulator(MouseButton.LeftMouse,
+                (x) =>
+                {
+                    var changeValue = x.x / m_GridSize * Time.deltaTime * 10;
+                    if (m_AnimFadeData.IsFixedFade)
+                    {
+                        m_AnimFadeData.FixedFadeTime += changeValue;
+                        m_AnimFadeData.FixedFadeTime = Mathf.Max(m_AnimFadeData.FixedFadeTime, 0);
+                    }
+                    else
+                    {
+                        m_AnimFadeData.NormalizeFadeTime += changeValue;
+                        m_AnimFadeData.NormalizeFadeTime = Mathf.Max(m_AnimFadeData.NormalizeFadeTime, 0);
+                    }
+
+                    UpdateTimelineView();
+                }));
+
+        }
+
+        private void RemapGridSize()
+        {
+            m_GridSize = this.position.width / m_Duration;
         }
 
         private void InitAllEventUI()
         {
-            EvnetsUI = new Dictionary<EventData, VisualElement>();
+            EventsUI = new Dictionary<EventData, VisualElement>();
             eventContainer.Clear();
-            foreach (var eventData in m_AnimFadeData?.Evnets)
+            if (m_AnimFadeData.Evnets != null)
             {
-                AddEventUI(eventData);
+                foreach (var eventData in m_AnimFadeData.Evnets)
+                {
+                    AddEventUI(eventData);
+                }
             }
         }
 
@@ -701,55 +791,16 @@ namespace EditorAnimatorControl.Editor
                     left = p_EventData.StartTime * m_GridSize,
                 },
             };
-            bool isMoving = false;
-            u.RegisterCallback<MouseDownEvent>(x =>
-            {
-                if (x.button == 0)
-                {
-                    isMoving = true;
-                    SetEnableOtherCollider(u,false);
-                }
-            });
-            u.RegisterCallback<MouseUpEvent>(x =>
-            {
-                if (isMoving) isMoving = false;
-                SetEnableOtherCollider(null,true);
-            });
-            u.RegisterCallback<MouseLeaveEvent>(x =>
-            {
-                if (isMoving) isMoving = false;
-                SetEnableOtherCollider(null,true);
-            });
-            u.RegisterCallback<MouseMoveEvent>(x =>
-            {
-                if (isMoving)
-                {
-                    p_EventData.StartTime += x.mouseDelta.x / m_GridSize;
-                    u.tooltip = p_EventData.ToString();
-                }
-            });
 
-            void SetEnableOtherCollider(VisualElement p_Target,bool p_IsEnable)
+            u.AddManipulator(new DraggerManipulator(MouseButton.LeftMouse, (x) =>
             {
-                foreach (var kvp in EvnetsUI)
-                {
-                    if (kvp.Value!=p_Target)
-                    {
-                        kvp.Value.style.display = p_IsEnable? DisplayStyle.Flex: DisplayStyle.None;
-                    }
-                }
-            }
-            
-            // u.AddManipulator(new ContextualMenuManipulator(x =>
-            // {
-            //     x.menu.AppendAction("修改",(a) =>
-            //     {
-            //         
-            //     });
-            // }));
+                p_EventData.StartTime += x.x / m_GridSize;
+                u.tooltip = p_EventData.ToString();
+            }));
+
 
             eventContainer.Add(u);
-            EvnetsUI.Add(p_EventData, u);
+            EventsUI.Add(p_EventData, u);
         }
 
         private void UpdateTimelineView()
@@ -761,7 +812,7 @@ namespace EditorAnimatorControl.Editor
                 m_AnimFadeData.StartCrossFadeTime - m_AnimFadeData.TimeOffset);
             progressLine.style.left = m_CurTime * m_GridSize;
             animOneNameLabel.text = m_AnimOneName;
-            animTwoNameLabel.text = m_AnimTwoName;
+            animTwoNameLabel.text = m_AnimTwoName; 
 
             animTwo.style.display = m_AnimFadeData.IsCrossFade ? DisplayStyle.Flex : DisplayStyle.None;
             m_TimelineViewUI.style.height =
@@ -769,19 +820,23 @@ namespace EditorAnimatorControl.Editor
 
             fadeBox.style.left = m_AnimFadeData.StartCrossFadeTime * m_GridSize;
             fadeBox.style.width = m_CrossFadeDuration * m_GridSize;
+            fadeSizeHandler.style.left = fadeBox.style.left.value.value + fadeBox.style.width.value.value;
 
+            fadeSizeHandler.style.display = fadeBox.style.display =
+                m_AnimFadeData.IsCrossFade ? DisplayStyle.Flex : DisplayStyle.None; 
+            
             foreach (var eventData in m_AnimFadeData.Evnets)
             {
-                if (EvnetsUI.TryGetValue(eventData, out var ui))
+                if (EventsUI.TryGetValue(eventData, out var ui))
                 {
                     ui.style.width = eventData.Duration * m_GridSize;
                     ui.style.left = eventData.StartTime * m_GridSize;
                 }
                 else
                 {
-                    var current = EvnetsUI[eventData];
+                    var current = EventsUI[eventData];
                     current.parent.Remove(current);
-                    EvnetsUI.Remove(eventData);
+                    EventsUI.Remove(eventData);
                 }
             }
         }
@@ -793,8 +848,88 @@ namespace EditorAnimatorControl.Editor
 
             p_Element.style.width = p_Width;
             var mid = p_Element.Q<VisualElement>("Mid");
-            mid.style.width = p_Element.style.width.value.value - 20;
+            mid.style.width = p_Element.style.width.value.value;
             p_Element.style.left = p_Offset;
+        }
+
+        #endregion
+
+        #region UI Manipulator
+
+        class DraggerManipulator : MouseManipulator
+        {
+            private Vector2 m_Start;
+            protected bool m_Active;
+
+            private Action<Vector2> m_OnMouseMove;
+            private Action m_OnMouseDown, m_OnMouseUp;
+
+            public DraggerManipulator(MouseButton p_MouseKey = MouseButton.LeftMouse,
+                Action<Vector2> p_OnMouseMove = null, Action p_OnMouseDown = null, Action p_OnMouseUp = null)
+            {
+                m_OnMouseMove = p_OnMouseMove;
+                m_OnMouseDown = p_OnMouseDown;
+                m_OnMouseUp = p_OnMouseUp;
+                activators.Add(new ManipulatorActivationFilter { button = p_MouseKey });
+                m_Active = false;
+            }
+
+            protected override void RegisterCallbacksOnTarget()
+            {
+                target.RegisterCallback<MouseDownEvent>(OnMouseDown);
+                target.RegisterCallback<MouseMoveEvent>(OnMouseMove);
+                target.RegisterCallback<MouseUpEvent>(OnMouseUp);
+            }
+
+            protected override void UnregisterCallbacksFromTarget()
+            {
+                target.UnregisterCallback<MouseDownEvent>(OnMouseDown);
+                target.UnregisterCallback<MouseMoveEvent>(OnMouseMove);
+                target.UnregisterCallback<MouseUpEvent>(OnMouseUp);
+            }
+
+            protected void OnMouseDown(MouseDownEvent e)
+            {
+                if (m_Active)
+                {
+                    e.StopImmediatePropagation();
+                    return;
+                }
+
+                if (CanStartManipulation(e))
+                {
+                    m_OnMouseDown?.Invoke();
+
+                    m_Start = e.localMousePosition;
+
+                    m_Active = true;
+                    target.CaptureMouse();
+                    e.StopPropagation();
+                }
+            }
+
+            protected void OnMouseMove(MouseMoveEvent e)
+            {
+                if (!m_Active || !target.HasMouseCapture())
+                    return;
+
+                Vector2 diff = e.localMousePosition - m_Start;
+                m_OnMouseMove?.Invoke(diff);
+                // target.style.top = target.layout.y + diff.y;
+                // target.style.left = target.layout.x + diff.x;
+                e.StopPropagation();
+            }
+
+            protected void OnMouseUp(MouseUpEvent e)
+            {
+                if (!m_Active || !target.HasMouseCapture() || !CanStopManipulation(e))
+                    return;
+                m_OnMouseUp?.Invoke();
+
+                m_Active = false;
+                target.ReleaseMouse();
+                e.StopPropagation();
+            }
         }
 
         #endregion

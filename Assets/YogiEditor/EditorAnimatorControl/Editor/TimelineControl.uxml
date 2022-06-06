@@ -1,8 +1,9 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
     <ui:VisualElement name="TimelineControl">
         <ui:TextField picking-mode="Ignore" label="First State Name" name="First" binding-path="FirstStateName" />
+        <ui:Toggle label="Auto Play" binding-path="IsAutoPlay" />
         <ui:Toggle label="IsLoop" name="IsLoop" binding-path="IsLoop">
-            <uie:FloatField label="PlaySpeed" value="0" name="PlaySpeed" binding-path="PlaySpeed" />
+            <uie:FloatField label="Speed" value="42.2" name="PlaySpeed" binding-path="PlaySpeed" />
         </ui:Toggle>
         <ui:Toggle label="Is Cross Fade" name="IsCrossFade" binding-path="IsCrossFade" />
         <ui:TextField picking-mode="Ignore" label="Seconed State Name" name="SecondStateName" binding-path="SecondStateName" />
@@ -11,9 +12,11 @@
         <uie:FloatField label="Fixed Fade Time" value="0" name="FixedFadeTime" binding-path="FixedFadeTime" />
         <uie:FloatField label="Normalized Fade Time" value="0" name="NormalizedFadeTime" binding-path="NormalizeFadeTime" />
         <uie:FloatField label="Offset Time" value="0" name="OffsetTime" binding-path="TimeOffset" />
-        <ui:Button text="Bake" name="Bake" />
-        <ui:Button text="Play" name="Play" />
-        <ui:Button text="Pause" name="Pause" />
+        <ui:VisualElement name="BtnContainer" style="flex-direction: row;">
+            <ui:Button text="Bake" name="Bake" style="display: none; visibility: hidden;" />
+            <ui:Button name="Play" style="background-image: url(&apos;/Assets/Plugins/fsy002/png/button_yellow/button_play.png&apos;); height: 30px; width: 30px;" />
+            <ui:Button name="Pause" style="background-image: url(&apos;/Assets/Plugins/fsy002/png/button_yellow/button_pause.png&apos;); width: 30px; height: 30px;" />
+        </ui:VisualElement>
         <ui:Slider picking-mode="Ignore" value="42" high-value="100" name="PlayTime" style="margin-left: 0; margin-right: 0;" />
     </ui:VisualElement>
 </ui:UXML>
