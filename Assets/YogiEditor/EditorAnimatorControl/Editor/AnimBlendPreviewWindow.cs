@@ -30,6 +30,8 @@ namespace EditorAnimatorControl.Editor
 
         #region Config
 
+        private const string PrefabPath = @"Assets\Plugins\SapphiArt\SapphiArtchan\OBJ/SapphiArtchan.prefab";
+
         private const string AnimPreviewUXMLPath = @"Assets\YogiEditor\EditorAnimatorControl\Editor\AnimPreview.uxml";
 
         private const string TimelineControlUXMLPath =
@@ -168,12 +170,8 @@ namespace EditorAnimatorControl.Editor
             // 初始化Preview
             InitPreview();
             InitUIElements();
-            // // 生成物体
-            // var goTMP = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            // ReplacePreviewGO(goTMP);
-            // GameObject.DestroyImmediate(goTMP);
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
-                @"Assets\Plugins\SapphiArt\SapphiArtchan\OBJ/SapphiArtchan.prefab");
+            // 生成物体
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
             ReplacePreviewGO(prefab);
             InitAnimControl();
             InitAllEventUI();
