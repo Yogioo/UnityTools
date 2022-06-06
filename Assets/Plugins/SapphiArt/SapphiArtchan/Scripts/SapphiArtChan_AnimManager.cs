@@ -1,5 +1,7 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Collections;
+using UnityEditor;
 
 public class SapphiArtChan_AnimManager : MonoBehaviour {
 
@@ -470,5 +472,7 @@ public class SapphiArtChan_AnimManager : MonoBehaviour {
     {
         //Set Facial
         SetFacial();
+
     }
+
 }
