@@ -1,4 +1,9 @@
-﻿using System;
+﻿/*
+ * Unity Menu:  Editor/Preferences
+ * Set:   Preferences.AutoRefresh = false
+ */
+
+using System;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;

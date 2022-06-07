@@ -1,9 +1,8 @@
 /*
 ** Author      : Yogi
 ** CreateDate  : 2022-22-12 12:22:59
-** Description : 
+** Description : Post Process Base Expand Plug-in 
 */
-using System;
 using UnityEngine;
 using UnityEngine.Rendering.PostProcessing;
 
@@ -60,7 +59,7 @@ public class PostEffectBase<T> : MonoBehaviour where T : PostProcessEffectSettin
     void Update()
     {
         timer += Time.deltaTime;
-        EvaluteByPercent(timer / Duration);
+        EvaluateByPercent(timer / Duration);
 
         if (timer > Duration)
         {
@@ -91,9 +90,8 @@ public class PostEffectBase<T> : MonoBehaviour where T : PostProcessEffectSettin
     {
 
     }
-    protected virtual void EvaluteByPercent(float percent)
+    protected virtual void EvaluateByPercent(float percent)
     {
-
     }
 
     #endregion

@@ -25,9 +25,9 @@ public class PostEffectGrayscaleCurve : PostEffectBase<Grayscale>
         setting.blend.overrideState = true;
 
     }
-    protected override void EvaluteByPercent(float percent)
+    protected override void EvaluateByPercent(float percent)
     {
-        base.EvaluteByPercent(percent);
+        base.EvaluateByPercent(percent);
 
         setting.blend.value = m_Curve.Evaluate(percent) * m_Intensity;
     }
