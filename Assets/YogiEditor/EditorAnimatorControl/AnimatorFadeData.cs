@@ -62,10 +62,6 @@ namespace EditorAnimatorControl
         /// 动画层 暂时不加入UI里面
         /// </summary>
         public int AnimLayer = 0;
-
-
-
-        
         /// <summary>
         /// 动画的事件
         /// </summary>

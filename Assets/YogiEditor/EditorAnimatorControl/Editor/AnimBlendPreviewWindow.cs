@@ -30,6 +30,7 @@ namespace EditorAnimatorControl.Editor
 
         #region Config
 
+        // Init Demo Test Prefab
         private const string PrefabPath = @"Assets\Plugins\SapphiArt\SapphiArtchan\OBJ/SapphiArtchan.prefab";
 
         private const string AnimPreviewUXMLPath = @"Assets\YogiEditor\EditorAnimatorControl\Editor\AnimPreview.uxml";
@@ -47,13 +48,18 @@ namespace EditorAnimatorControl.Editor
         private const float m_TimelineRowHeight = 50;
 
         /// <summary>
-        /// 1m = 100px
+        /// 1min = 100px
         /// </summary>
         private float m_GridSize = 100;
 
         #endregion
 
         #region PreviewTMP
+
+        /// <summary>
+        /// 是否初始化生物成功
+        /// </summary>
+        private bool m_IsSetUp = false;
 
         // --------------- Preview ---------------
         /// <summary>
@@ -170,16 +176,15 @@ namespace EditorAnimatorControl.Editor
             this.titleContent.text = "AnimBlendPreviewWindow";
             // 初始化Preview
             InitPreview();
-            InitUIElements();
-            // 生成物体
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-            ReplacePreviewGO(prefab);
-            SetUpAnimator();
-            InitAnimControl();
-            InitAllEventUI();
-            WaitToRemap();
+            // 初始化UI和注册事件
+            InitAndRegisterUIElements();
+            // 监听动画控制器
+            InitRegisterAnimControl();
         }
 
+        /// <summary>
+        /// 重新计算时间轴缩放
+        /// </summary>
         async void WaitToRemap()
         {
             await Task.Yield();
@@ -208,8 +213,12 @@ namespace EditorAnimatorControl.Editor
             }
 
             m_PreviewImg = RenderPreview();
-            UpdateUIElements();
-            AnimControlUpdate();
+
+            if (m_IsSetUp)
+            {
+                UpdateUIElements();
+                AnimControlUpdate();
+            }
         }
 
         private void OnGUI()
@@ -221,33 +230,58 @@ namespace EditorAnimatorControl.Editor
 
         #region API
 
-        public async void SetTarget()
+        /// <summary>
+        /// 通过弹窗设置
+        /// </summary>
+        public void SetTargetByPopupPanel()
         {
             var path = EditorUtility.OpenFilePanel("Select Prefab(Contain Animator)", "Assets/", "prefab");
             if (path != String.Empty)
             {
                 path = path.Substring(path.IndexOf("Assets", StringComparison.Ordinal));
                 var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                ReplacePreviewGO(go);
-                
-                SetUpAnimator();
-                m_HasBaked = false;
-                await Task.Yield();
-                await Task.Yield();
-                Play();
+                SetTarget(go);
             }
         }
 
-        public void AddEvent()
+        /// <summary>
+        /// 基于默认设置
+        /// </summary>
+        public void SetTargetByDefault()
         {
+            // 生成物体预制体
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            SetTarget(prefab);
         }
 
-        public void RemoveEvent()
+        /// <summary>
+        /// 设置目标
+        /// </summary>
+        /// <param name="p_Prefab"></param>
+        /// <param name="p_AnimatorFadeData"></param>
+        public void SetTarget(GameObject p_Prefab, AnimatorFadeData p_AnimatorFadeData = null)
         {
+            m_IsSetUp = false;
+            // 替换显示动画物体
+            ReplacePreviewGO(p_Prefab);
+            // 初始化动画控制器
+            SetUpAnimator();
+            // 初始化动画切换配置
+            SetUpAnimFadeData(p_AnimatorFadeData);
+            // 初始化事件UI
+            InitAllEventUI();
+            // 重新计算时间轴缩放
+            WaitToRemap();
+
+            m_IsSetUp = true;
         }
 
-        public void RefreshEvent()
+        /// <summary>
+        /// 刷新事件UI
+        /// </summary>
+        public void UpdateEventsUI()
         {
+            InitAllEventUI();
         }
 
         #endregion
@@ -417,7 +451,7 @@ namespace EditorAnimatorControl.Editor
 
         #region UI Elements
 
-        private void InitUIElements()
+        private void InitAndRegisterUIElements()
         {
             var animControlUXML = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(TimelineControlUXMLPath);
             animControlUXML.CloneTree(rootVisualElement);
@@ -472,15 +506,13 @@ namespace EditorAnimatorControl.Editor
                 throw new Exception("The Target Has No Animator Component! Require Animator Component!");
             }
         }
+
         /// <summary>
         /// 初始化动画控制
         /// </summary>
-        private void InitAnimControl()
+        private void InitRegisterAnimControl()
         {
             m_HasBaked = false;
-
-
-            
             m_TimeSlider.RegisterValueChangedCallback(x =>
             {
                 m_AnimFadeData.IsAutoPlay = false;
@@ -491,7 +523,7 @@ namespace EditorAnimatorControl.Editor
             // m_BakeBtn.clicked += Bake;
             m_PlayBtn.clicked += Play;
             m_PauseBtn.clicked += Pause;
-            m_SelectBtn.clicked += SetTarget;
+            m_SelectBtn.clicked += SetTargetByPopupPanel;
 
             // 当属性发生更改的时候 自动Bake
             // m_TimelineControlUI.RegisterCallback<ChangeEvent<float>>((x) => { Bake(); });
@@ -507,14 +539,16 @@ namespace EditorAnimatorControl.Editor
 
             m_TimelineControlUI.RegisterCallback<ChangeEvent<string>>((x) => { Bake(); });
             m_TimelineControlUI.RegisterCallback<ChangeEvent<bool>>((x) => { Bake(); });
-
-            // 2. 初始化动画切换配置
-            SetUpAnimFadeData();
         }
 
+        /// <summary>
+        /// 初始化动画切换配置
+        /// </summary>
+        /// <param name="p_AnimatorFadeData"></param>
         private void SetUpAnimFadeData(AnimatorFadeData p_AnimatorFadeData = null)
         {
-            if (m_AnimFadeData == null)
+            m_TimelineControlUI.Unbind();
+            if (p_AnimatorFadeData == null)
             {
                 m_AnimFadeData = ScriptableObject.CreateInstance<AnimatorFadeData>();
                 m_AnimFadeData.hideFlags = HideFlags.HideAndDontSave;
@@ -714,7 +748,7 @@ namespace EditorAnimatorControl.Editor
             {
                 m_AnimFadeData.StartCrossFadeTime = Mathf.Min(m_AnimFadeData.StartCrossFadeTime, m_FistClipLength);
                 m_AnimFadeData.StartCrossFadeTime = Mathf.Max(m_AnimFadeData.StartCrossFadeTime, 0);
-                
+
                 m_AnimFadeData.FixedFadeTime = Mathf.Max(m_AnimFadeData.FixedFadeTime, 0);
                 m_AnimFadeData.NormalizeFadeTime = Mathf.Max(m_AnimFadeData.NormalizeFadeTime, 0);
                 m_AnimFadeData.TimeOffset = Mathf.Max(m_AnimFadeData.TimeOffset, 0);
@@ -814,6 +848,9 @@ namespace EditorAnimatorControl.Editor
             m_GridSize = this.position.width / m_Duration;
         }
 
+        /// <summary>
+        /// 初始化事件 UI与监听
+        /// </summary>
         private void InitAllEventUI()
         {
             EventsUI = new Dictionary<EventData, VisualElement>();
@@ -827,6 +864,7 @@ namespace EditorAnimatorControl.Editor
             }
         }
 
+        public Action<EventData> OnEventChanged;
         private void AddEventUI(EventData p_EventData)
         {
             var u = new VisualElement
@@ -847,6 +885,7 @@ namespace EditorAnimatorControl.Editor
             {
                 p_EventData.StartTime += x.x / m_GridSize;
                 u.tooltip = p_EventData.ToString();
+                OnEventChanged?.Invoke(p_EventData);
             }));
 
 
