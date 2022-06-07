@@ -865,7 +865,7 @@ namespace GraphProcessor
 			if (typeof(IList).IsAssignableFrom(field.FieldType))
 				EnableSyncSelectionBorderHeight();
 
-			element.RegisterValueChangeCallback(e => {
+			element.RegisterCallback<ChangeEvent<SerializedProperty>>(e => {
 				UpdateFieldVisibility(field.Name, field.GetValue(nodeTarget));
 				valueChangedCallback?.Invoke();
 				NotifyNodeChanged();

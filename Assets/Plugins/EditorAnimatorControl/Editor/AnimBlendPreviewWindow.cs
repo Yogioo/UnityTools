@@ -19,7 +19,15 @@ namespace EditorAnimatorControl.Editor
         [MenuItem("AnimSystem/AnimBlendPreviewWindow")]
         public static AnimBlendPreviewWindow Popup()
         {
-            return EditorWindow.GetWindow<AnimBlendPreviewWindow>();
+            var w= EditorWindow.GetWindow<AnimBlendPreviewWindow>();
+            w.SetTargetByDefault();
+            return w;
+        }
+        public static AnimBlendPreviewWindow Popup(GameObject p_Prefab, AnimatorFadeData p_FadeData)
+        {
+            var w= EditorWindow.GetWindow<AnimBlendPreviewWindow>();
+            w.SetTarget(p_Prefab,p_FadeData);
+            return w;
         }
 
         // 1. 首先实现预览生物和摄像机控制功能
@@ -33,12 +41,12 @@ namespace EditorAnimatorControl.Editor
         // Init Demo Test Prefab
         private const string PrefabPath = @"Assets\Plugins\SapphiArt\SapphiArtchan\OBJ/SapphiArtchan.prefab";
 
-        private const string AnimPreviewUXMLPath = @"Assets\YogiEditor\EditorAnimatorControl\Editor\AnimPreview.uxml";
+        private const string AnimPreviewUXMLPath = @"Assets\Plugins\EditorAnimatorControl\Editor\AnimPreview.uxml";
 
         private const string TimelineControlUXMLPath =
-            @"Assets\YogiEditor\EditorAnimatorControl\Editor\TimelineControl.uxml";
+            @"Assets\Plugins\EditorAnimatorControl\Editor\TimelineControl.uxml";
 
-        private const string TimelineViewUXMLPath = @"Assets\YogiEditor\EditorAnimatorControl\Editor\TimelineView.uxml";
+        private const string TimelineViewUXMLPath = @"Assets\Plugins\EditorAnimatorControl\Editor\TimelineView.uxml";
 
         private const float TimelineControlHeight = 246;
         private const float TimelineViewHeight = 120;
@@ -180,6 +188,8 @@ namespace EditorAnimatorControl.Editor
             InitAndRegisterUIElements();
             // 监听动画控制器
             InitRegisterAnimControl();
+            // 默认读取
+            // SetTargetByDefault();
         }
 
         /// <summary>
@@ -229,6 +239,8 @@ namespace EditorAnimatorControl.Editor
         #endregion
 
         #region API
+        
+        
 
         /// <summary>
         /// 通过弹窗设置

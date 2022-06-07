@@ -14,9 +14,9 @@
         <uie:FloatField label="Offset Time" value="0" name="OffsetTime" binding-path="TimeOffset" />
         <ui:VisualElement name="BtnContainer" style="flex-direction: row;">
             <ui:Button text="Bake" name="Bake" style="display: none; visibility: hidden;" />
-            <ui:Button name="Play" style="background-image: url(&apos;/Assets/Plugins/fsy002/png/button_yellow/button_play.png&apos;); height: 30px; width: 30px;" />
-            <ui:Button name="Pause" style="background-image: url(&apos;/Assets/Plugins/fsy002/png/button_yellow/button_pause.png&apos;); width: 30px; height: 30px;" />
-            <ui:Button name="Select" style="background-image: url(&apos;/Assets/Plugins/fsy002/png/button_yellow/button_plus.png&apos;); width: 30px; height: 30px;" />
+            <ui:Button name="Play" style="background-image: url(&apos;/Assets/Plugins/EditorAnimatorControl/ArtData/fsy002/png/button_yellow/button_play.png&apos;); height: 30px; width: 30px;" />
+            <ui:Button name="Pause" style="background-image: url(&apos;/Assets/Plugins/EditorAnimatorControl/ArtData/fsy002/png/button_yellow/button_pause.png&apos;); width: 30px; height: 30px;" />
+            <ui:Button name="Select" style="background-image: url(&apos;/Assets/Plugins/EditorAnimatorControl/ArtData/fsy002/png/button_yellow/button_plus.png&apos;); width: 30px; height: 30px;" />
         </ui:VisualElement>
         <ui:Slider picking-mode="Ignore" value="42" high-value="100" name="PlayTime" style="margin-left: 0; margin-right: 0;" />
     </ui:VisualElement>
