@@ -703,10 +703,6 @@ namespace EditorAnimatorControl.Editor
             // 开始记录指定的帧数
             m_Animator.StartRecording(frameCount);
 
-            m_Animator.SetFloat("WalkSpeed", 1);
-            m_Animator.SetFloat("CastingSpeed", 1);
-            m_Animator.SetFloat("AerialDownSpeed", 1);
-
             m_Animator.Play(m_AnimFadeData.FirstStateName);
             int crossFadeFrame = (int)(m_AnimFadeData.StartCrossFadeTime * frameRate);
             for (var i = 0; i < frameCount - 1; i++)
