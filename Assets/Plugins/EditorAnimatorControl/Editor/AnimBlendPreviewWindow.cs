@@ -17,6 +17,7 @@ namespace EditorAnimatorControl.Editor
     public class AnimBlendPreviewWindow : EditorWindow
     {
         public Action OnClose;
+
         [MenuItem("AnimSystem/AnimBlendPreviewWindow")]
         public static AnimBlendPreviewWindow Popup()
         {
@@ -54,6 +55,11 @@ namespace EditorAnimatorControl.Editor
 
         private const string TimelineViewUXMLPath = @"Assets\Plugins\EditorAnimatorControl\Editor\TimelineView.uxml";
 
+        const string GroundTexPath = "Assets/Plugins/EditorAnimatorControl/ArtData/GridMap.png";
+
+        private static readonly Vector2 GroundUVScale = new Vector2(5, 5);
+        private const float GroundScale = 10;
+
         private const float TimelineControlHeight = 246;
         private const float DefaultTimelineViewHeight = 100;
         private float TimelineViewHeight = 100;
@@ -79,6 +85,9 @@ namespace EditorAnimatorControl.Editor
         private bool m_IsSetUp = false;
 
         // --------------- Preview ---------------
+
+        private GameObject m_Prefab;
+
         /// <summary>
         /// 预览窗口类
         /// </summary>
@@ -93,6 +102,11 @@ namespace EditorAnimatorControl.Editor
         /// 预览图片UI
         /// </summary>
         private VisualElement m_PreviewImgUI;
+
+        /// <summary>
+        /// 显示实际播放时间
+        /// </summary>
+        private Label m_TimeLabel;
 
         private VisualElement m_TimelineControlUI;
         private VisualElement m_TimelineViewUI;
@@ -131,6 +145,9 @@ namespace EditorAnimatorControl.Editor
         // --------------- Anim Control ---------------
         private AnimatorFadeData m_AnimFadeData;
         private Animator m_Animator;
+
+        private AnimationClip m_FirstClip;
+        private AnimationClip m_SecondClip;
 
         /// <summary>
         /// 第一段动画长度
@@ -190,7 +207,6 @@ namespace EditorAnimatorControl.Editor
 
         private void OnEnable()
         {
-            
             this.titleContent.text = "AnimBlendPreviewWindow";
             // 初始化Preview
             InitPreview();
@@ -315,9 +331,25 @@ namespace EditorAnimatorControl.Editor
             m_Cam = m_PreviewRenderUtility.camera;
             m_CamTrans = m_Cam.transform;
             m_Cam.farClipPlane = 500;
-            m_Cam.clearFlags = CameraClearFlags.SolidColor;
+            m_Cam.clearFlags = CameraClearFlags.Skybox;
+            m_Cam.orthographic = false;
             m_IsReset = true;
 
+            // Ground Init
+            var planeGO = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            planeGO.transform.localScale = GroundScale * Vector3.one;
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(GroundTexPath);
+            var mat = new Material(Shader.Find("Standard"));
+            planeGO.GetComponent<Renderer>().material = mat;
+            mat.mainTexture = tex;
+            mat.mainTextureScale = GroundUVScale; // 1m per Grid
+            m_PreviewRenderUtility.AddSingleGO(planeGO);
+
+            // Main Light Init
+            var l = m_PreviewRenderUtility.lights[0];
+            l.enabled = true;
+            l.shadows = LightShadows.Soft;
+            l.transform.eulerAngles = new Vector3(50, 230, 0);
             m_LookAtCenter = new GameObject().transform;
             ResetByKeyF();
 
@@ -330,6 +362,7 @@ namespace EditorAnimatorControl.Editor
             m_PreviewRenderUtility = null;
         }
 
+
         private void ReplacePreviewGO(GameObject p_Prefab)
         {
             if (m_PreviewGo != null)
@@ -338,6 +371,7 @@ namespace EditorAnimatorControl.Editor
                 m_PreviewGo = null;
             }
 
+            m_Prefab = p_Prefab;
             m_PreviewGo = GameObject.Instantiate(p_Prefab);
             m_PreviewRenderUtility.AddSingleGO(m_PreviewGo);
         }
@@ -453,7 +487,7 @@ namespace EditorAnimatorControl.Editor
 
                 m_CamTrans.position = new Vector3(0, 0, -10);
                 m_CamTrans.forward = Vector3.forward;
-                CameraRotate(new Vector2(-26.2f,-190.5f));
+                CameraRotate(new Vector2(-26.2f, -190.5f));
                 m_IsReset = false;
             }
         }
@@ -492,6 +526,34 @@ namespace EditorAnimatorControl.Editor
             {
                 m_MouseWheelDelta += -HandleUtility.niceMouseDeltaZoom;
             });
+            m_PreviewImgUI.AddManipulator(new ContextualMenuManipulator((x) =>
+            {
+                x.menu.AppendAction("Jump To First Animation Clip", (a) =>
+                {
+                    if (m_FirstClip != null)
+                    {
+                        Selection.activeObject = m_FirstClip;
+                        EditorGUIUtility.PingObject(m_FirstClip);
+                    }
+                });
+                x.menu.AppendAction("Jump To Second Animation Clip", (a) =>
+                {
+                    if (m_SecondClip != null)
+                    {
+                        Selection.activeObject = m_SecondClip;
+                        EditorGUIUtility.PingObject(m_SecondClip);
+                    }
+                });
+                x.menu.AppendAction("Jump To Prefab", (a) =>
+                {
+                    if (m_Prefab != null)
+                    {
+                        Selection.activeObject = m_Prefab;
+                        EditorGUIUtility.PingObject(m_Prefab);
+                    }
+                });
+            }));
+            m_TimeLabel = m_PreviewImgUI.Q<Label>("TimeLabel");
         }
 
         private void UpdateUIElements()
@@ -504,6 +566,9 @@ namespace EditorAnimatorControl.Editor
             m_PreviewImgUI.style.width = m_RenderSize.x;
             m_PreviewImgUI.style.height = m_RenderSize.y;
             m_PreviewImgUI.style.backgroundImage = m_PreviewImg;
+
+            var percent = m_CurTime / m_Duration;
+            m_TimeLabel.text = $"{m_CurTime:F} ({percent:P1}) Frame {(m_CurTime * 60):F0}";
 
             UpdateTimelineView();
 
@@ -599,7 +664,7 @@ namespace EditorAnimatorControl.Editor
             }
 
             if (!TryGetClipLengthByStateName(m_AnimFadeData.FirstStateName, m_Animator, m_AnimFadeData.AnimLayer
-                    , out m_FistClipLength, out m_AnimOneName))
+                    , out m_FistClipLength, out m_AnimOneName, out m_FirstClip))
             {
                 m_Duration = m_FistClipLength;
                 return;
@@ -613,7 +678,8 @@ namespace EditorAnimatorControl.Editor
             {
                 if (TryGetClipLengthByStateName(m_AnimFadeData.SecondStateName, m_Animator, m_AnimFadeData.AnimLayer,
                         out m_SecondClipLength,
-                        out m_AnimTwoName))
+                        out m_AnimTwoName,
+                        out m_SecondClip))
                 {
                     m_CrossFadeDuration = m_AnimFadeData.IsFixedFade
                         ? m_AnimFadeData.FixedFadeTime
@@ -636,6 +702,10 @@ namespace EditorAnimatorControl.Editor
 
             // 开始记录指定的帧数
             m_Animator.StartRecording(frameCount);
+
+            m_Animator.SetFloat("WalkSpeed", 1);
+            m_Animator.SetFloat("CastingSpeed", 1);
+            m_Animator.SetFloat("AerialDownSpeed", 1);
 
             m_Animator.Play(m_AnimFadeData.FirstStateName);
             int crossFadeFrame = (int)(m_AnimFadeData.StartCrossFadeTime * frameRate);
@@ -675,8 +745,9 @@ namespace EditorAnimatorControl.Editor
 
 
         private bool TryGetClipLengthByStateName(string p_StateName, Animator p_Animator, int p_Layer, out float length,
-            out string clipName)
+            out string clipName, out AnimationClip targetClip)
         {
+            targetClip = null;
             clipName = "";
             length = 0;
             var layer0 = ((AnimatorController)p_Animator.runtimeAnimatorController).layers[p_Layer];
@@ -688,8 +759,9 @@ namespace EditorAnimatorControl.Editor
                 var clips = p_Animator.runtimeAnimatorController.animationClips;
                 var motion = targetAnimState.state.motion;
                 clipName = motion.name;
-                var targetClip = clips.First(x => motion.name == x.name);
+                targetClip = clips.First(x => motion.name == x.name);
                 length = targetClip.length;
+
                 return true;
             }
             catch
@@ -880,8 +952,8 @@ namespace EditorAnimatorControl.Editor
             {
                 foreach (var eventData in m_AnimFadeData.Evnets)
                 {
-                    eventContainer.style.height= eventContainer.style.height.value.value + SingleEventLineHeight;
-                    var ui =AddEventUI(eventData);
+                    eventContainer.style.height = eventContainer.style.height.value.value + SingleEventLineHeight;
+                    var ui = AddEventUI(eventData);
                     ui.style.top = eventContainer.style.height.value.value - SingleEventLineHeight;
                     TimelineViewHeight += SingleEventLineHeight;
                 }
@@ -903,17 +975,27 @@ namespace EditorAnimatorControl.Editor
                     backgroundColor = p_EventData.DisplayColor, // Random.ColorHSV(0, 1, .5f, 1, .5f, 1, 0.2f, 0.5f),
                     width = p_EventData.Duration * m_GridSize,
                     left = p_EventData.StartTime * m_GridSize,
+                    alignItems = new StyleEnum<Align>(Align.Center),
                 },
             };
 
             u.AddManipulator(new DraggerManipulator(MouseButton.LeftMouse, (x) =>
             {
                 p_EventData.StartTime += x.x / m_GridSize;
-                p_EventData.StartTime = Mathf.Clamp(p_EventData.StartTime,0,m_Duration);
+                p_EventData.StartTime = Mathf.Clamp(p_EventData.StartTime, 0, m_Duration);
                 u.tooltip = p_EventData.ToString();
                 OnEventChanged?.Invoke(p_EventData);
             }));
 
+            u.Add(new Label(p_EventData.Name)
+            {
+                style =
+                {
+                    fontSize = 8.0f,
+                    color = new StyleColor(Color.black),
+                    unityFontStyleAndWeight = new StyleEnum<FontStyle>(FontStyle.Bold)
+                }
+            });
 
             eventContainer.Add(u);
             EventsUI.Add(p_EventData, u);
@@ -926,6 +1008,7 @@ namespace EditorAnimatorControl.Editor
             {
                 return;
             }
+
             m_TimeSlider.style.width = m_Duration * m_GridSize;
             eventContainer.style.width = m_Duration * m_GridSize;
             SetTimelineRowWidth(animOne, m_FistClipLength);
@@ -937,7 +1020,7 @@ namespace EditorAnimatorControl.Editor
 
             animTwo.style.display = m_AnimFadeData.IsCrossFade ? DisplayStyle.Flex : DisplayStyle.None;
             m_TimelineViewUI.style.height =
-                (m_AnimFadeData.IsCrossFade ? m_TimelineDefaultHeight : m_TimelineDefaultHeight - m_TimelineRowHeight) + 
+                (m_AnimFadeData.IsCrossFade ? m_TimelineDefaultHeight : m_TimelineDefaultHeight - m_TimelineRowHeight) +
                 eventContainer.style.height.value.value;
 
             fadeBox.style.left = m_AnimFadeData.StartCrossFadeTime * m_GridSize;

@@ -1,5 +1,7 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
     <ui:VisualElement name="AnimPreview">
-        <ui:VisualElement name="PreviewImg" style="background-color: rgba(255, 0, 0, 255); width: 200px; height: 100px;" />
+        <ui:VisualElement name="PreviewImg" style="background-color: rgba(196, 196, 196, 255); width: 214px; height: 116px; align-items: center; justify-content: flex-end;">
+            <ui:Label text="1.13/20 (100.0%) Frame 120" name="TimeLabel" style="-unity-font-style: bold-and-italic; color: rgba(255, 226, 0, 255);" />
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

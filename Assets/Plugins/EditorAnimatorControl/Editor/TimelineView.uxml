@@ -19,7 +19,7 @@
             <ui:VisualElement name="Right" style="width: 0; background-color: rgb(94, 0, 0); height: 50px;" />
         </ui:VisualElement>
         <ui:VisualElement name="FadeBox" style="position: absolute; height: 99.6px; width: 76px; left: 120px; background-color: rgba(0, 122, 255, 0.17); top: 0;" />
-        <ui:VisualElement name="FadeSizeHandler" style="position: absolute; width: 10px; height: 20px; left: 196.5px; background-image: url(&apos;/Assets/Plugins/Wenrexa Interface UI KIT #4/PNG/Icons/ArrowsRight.png&apos;); -unity-background-image-tint-color: rgb(0, 241, 255); top: 39px;" />
+        <ui:VisualElement name="FadeSizeHandler" style="position: absolute; width: 10px; height: 20px; left: 196.5px; background-image: url(&apos;/Assets/Plugins/EditorAnimatorControl/ArtData/Wenrexa Interface UI KIT #4/PNG/Icons/ArrowsRight.png&apos;); -unity-background-image-tint-color: rgb(0, 241, 255); top: 39px;" />
         <ui:VisualElement name="Line" style="position: absolute; left: 54px; width: 1px; height: 120px; background-color: rgb(42, 76, 255);" />
         <ui:VisualElement name="EventContainer" style="height: 10px; width: 1190px; background-color: rgb(106, 106, 106);">
             <ui:VisualElement name="EventBT" style="width: 5px; height: 10px; position: absolute; left: 494.75px; background-color: rgb(255, 222, 0);" />

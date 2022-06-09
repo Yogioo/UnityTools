@@ -67,9 +67,10 @@ namespace EditorAnimatorControl
         /// </summary>
         public List<EventData> Evnets=new List<EventData>()
         {
-            new EventData(0.1f, 0.2f, "Event0","起飞~",Color.red),
-            new EventData(0.3f, 0.1f, "Event2","下落~",Color.green)
+            // new EventData(0.1f, 0.2f, "Event0","起飞~"),
+            // new EventData(0.3f, 0.1f, "Event2","下落~")
         };
+        
     }
 
     [System.Serializable]
@@ -80,7 +81,7 @@ namespace EditorAnimatorControl
         public string Name;
         public string Description;
         public Color DisplayColor;
-        
+
         public EventData(float p_Start,float p_Duration, string p_Name,string p_Description,Color p_DisplayColor)
         {
             StartTime = p_Start;
