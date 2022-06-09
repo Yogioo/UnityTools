@@ -19,14 +19,15 @@ namespace EditorAnimatorControl.Editor
         [MenuItem("AnimSystem/AnimBlendPreviewWindow")]
         public static AnimBlendPreviewWindow Popup()
         {
-            var w= EditorWindow.GetWindow<AnimBlendPreviewWindow>();
+            var w = EditorWindow.GetWindow<AnimBlendPreviewWindow>();
             w.SetTargetByDefault();
             return w;
         }
+
         public static AnimBlendPreviewWindow Popup(GameObject p_Prefab, AnimatorFadeData p_FadeData)
         {
-            var w= EditorWindow.GetWindow<AnimBlendPreviewWindow>();
-            w.SetTarget(p_Prefab,p_FadeData);
+            var w = EditorWindow.GetWindow<AnimBlendPreviewWindow>();
+            w.SetTarget(p_Prefab, p_FadeData);
             return w;
         }
 
@@ -49,16 +50,18 @@ namespace EditorAnimatorControl.Editor
         private const string TimelineViewUXMLPath = @"Assets\Plugins\EditorAnimatorControl\Editor\TimelineView.uxml";
 
         private const float TimelineControlHeight = 246;
-        private const float TimelineViewHeight = 120;
+        private float TimelineViewHeight = 100;
 
 
-        private const float m_TimelineDefaultHeight = 120;
+        private const float m_TimelineDefaultHeight = 100;
         private const float m_TimelineRowHeight = 50;
 
         /// <summary>
         /// 1min = 100px
         /// </summary>
         private float m_GridSize = 100;
+
+        private const float SingleEventLineHeight = 10;
 
         #endregion
 
@@ -239,8 +242,6 @@ namespace EditorAnimatorControl.Editor
         #endregion
 
         #region API
-        
-        
 
         /// <summary>
         /// 通过弹窗设置
@@ -443,11 +444,9 @@ namespace EditorAnimatorControl.Editor
             {
                 m_LookAtCenter.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
 
-
                 m_CamTrans.position = new Vector3(0, 0, -10);
                 m_CamTrans.forward = Vector3.forward;
-                CameraRotate(new Vector2(50, 45));
-
+                CameraRotate(new Vector2(-26.2f,-190.5f));
                 m_IsReset = false;
             }
         }
@@ -867,27 +866,32 @@ namespace EditorAnimatorControl.Editor
         {
             EventsUI = new Dictionary<EventData, VisualElement>();
             eventContainer.Clear();
+            eventContainer.style.height = 0;
             if (m_AnimFadeData.Evnets != null)
             {
                 foreach (var eventData in m_AnimFadeData.Evnets)
                 {
-                    AddEventUI(eventData);
+                    eventContainer.style.height= eventContainer.style.height.value.value + SingleEventLineHeight;
+                    var ui =AddEventUI(eventData);
+                    ui.style.top = eventContainer.style.height.value.value - SingleEventLineHeight;
+                    TimelineViewHeight += SingleEventLineHeight;
                 }
             }
         }
 
         public Action<EventData> OnEventChanged;
-        private void AddEventUI(EventData p_EventData)
+
+        private VisualElement AddEventUI(EventData p_EventData)
         {
-            var u = new VisualElement
+            VisualElement u = new VisualElement
             {
                 name = "Event",
                 tooltip = $"{p_EventData}",
                 style =
                 {
                     position = Position.Absolute,
-                    height = 20,
-                    backgroundColor = Random.ColorHSV(0, 1, .5f, 1, .5f, 1, 0.2f, 0.5f),
+                    height = SingleEventLineHeight,
+                    backgroundColor = p_EventData.DisplayColor, // Random.ColorHSV(0, 1, .5f, 1, .5f, 1, 0.2f, 0.5f),
                     width = p_EventData.Duration * m_GridSize,
                     left = p_EventData.StartTime * m_GridSize,
                 },
@@ -903,6 +907,7 @@ namespace EditorAnimatorControl.Editor
 
             eventContainer.Add(u);
             EventsUI.Add(p_EventData, u);
+            return u;
         }
 
         private void UpdateTimelineView()
@@ -918,7 +923,8 @@ namespace EditorAnimatorControl.Editor
 
             animTwo.style.display = m_AnimFadeData.IsCrossFade ? DisplayStyle.Flex : DisplayStyle.None;
             m_TimelineViewUI.style.height =
-                m_AnimFadeData.IsCrossFade ? m_TimelineDefaultHeight : m_TimelineDefaultHeight - m_TimelineRowHeight;
+                (m_AnimFadeData.IsCrossFade ? m_TimelineDefaultHeight : m_TimelineDefaultHeight - m_TimelineRowHeight) + 
+                eventContainer.style.height.value.value;
 
             fadeBox.style.left = m_AnimFadeData.StartCrossFadeTime * m_GridSize;
             fadeBox.style.width = m_CrossFadeDuration * m_GridSize;
