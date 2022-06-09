@@ -909,6 +909,7 @@ namespace EditorAnimatorControl.Editor
             u.AddManipulator(new DraggerManipulator(MouseButton.LeftMouse, (x) =>
             {
                 p_EventData.StartTime += x.x / m_GridSize;
+                p_EventData.StartTime = Mathf.Clamp(p_EventData.StartTime,0,m_Duration);
                 u.tooltip = p_EventData.ToString();
                 OnEventChanged?.Invoke(p_EventData);
             }));
