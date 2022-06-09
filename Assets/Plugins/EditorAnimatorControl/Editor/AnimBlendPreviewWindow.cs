@@ -16,6 +16,7 @@ namespace EditorAnimatorControl.Editor
     /// </summary>
     public class AnimBlendPreviewWindow : EditorWindow
     {
+        public Action OnClose;
         [MenuItem("AnimSystem/AnimBlendPreviewWindow")]
         public static AnimBlendPreviewWindow Popup()
         {
@@ -31,6 +32,10 @@ namespace EditorAnimatorControl.Editor
             return w;
         }
 
+        private void OnDestroy()
+        {
+            OnClose?.Invoke();
+        }
         // 1. 首先实现预览生物和摄像机控制功能
         // 2. 把动画控制处理了
         // 3. 加入动画时间线View
@@ -50,6 +55,7 @@ namespace EditorAnimatorControl.Editor
         private const string TimelineViewUXMLPath = @"Assets\Plugins\EditorAnimatorControl\Editor\TimelineView.uxml";
 
         private const float TimelineControlHeight = 246;
+        private const float DefaultTimelineViewHeight = 100;
         private float TimelineViewHeight = 100;
 
 
@@ -184,6 +190,7 @@ namespace EditorAnimatorControl.Editor
 
         private void OnEnable()
         {
+            
             this.titleContent.text = "AnimBlendPreviewWindow";
             // 初始化Preview
             InitPreview();
@@ -491,7 +498,8 @@ namespace EditorAnimatorControl.Editor
         {
             // var t_MinSize = Mathf.Min(this.position.width, this.position.height);
             // m_RenderSize
-
+            if (m_AnimFadeData == null)
+                return;
 
             m_PreviewImgUI.style.width = m_RenderSize.x;
             m_PreviewImgUI.style.height = m_RenderSize.y;
@@ -867,6 +875,7 @@ namespace EditorAnimatorControl.Editor
             EventsUI = new Dictionary<EventData, VisualElement>();
             eventContainer.Clear();
             eventContainer.style.height = 0;
+            TimelineViewHeight = DefaultTimelineViewHeight;
             if (m_AnimFadeData.Evnets != null)
             {
                 foreach (var eventData in m_AnimFadeData.Evnets)
@@ -912,6 +921,10 @@ namespace EditorAnimatorControl.Editor
 
         private void UpdateTimelineView()
         {
+            if (m_AnimFadeData == null)
+            {
+                return;
+            }
             m_TimeSlider.style.width = m_Duration * m_GridSize;
             eventContainer.style.width = m_Duration * m_GridSize;
             SetTimelineRowWidth(animOne, m_FistClipLength);
