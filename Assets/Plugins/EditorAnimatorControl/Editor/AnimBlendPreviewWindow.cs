@@ -207,6 +207,7 @@ namespace EditorAnimatorControl.Editor
 
         private void OnEnable()
         {
+            this.OnClose = null;
             this.titleContent.text = "AnimBlendPreviewWindow";
             // 初始化Preview
             InitPreview();
@@ -374,6 +375,23 @@ namespace EditorAnimatorControl.Editor
             m_Prefab = p_Prefab;
             m_PreviewGo = GameObject.Instantiate(p_Prefab);
             m_PreviewRenderUtility.AddSingleGO(m_PreviewGo);
+            var monos=m_PreviewGo.GetComponents<Component>();
+            foreach (Component monoBehaviour in monos)
+            {
+                if (monoBehaviour is Animator a)
+                {
+                    a.applyRootMotion = true;
+                }
+                else if (monoBehaviour is Transform)
+                {
+                    
+                }
+                else
+                {
+                    GameObject.DestroyImmediate(monoBehaviour);
+                }
+            }
+            Selection.activeObject = m_PreviewGo;
         }
 
         private void UpdateScene()
@@ -663,6 +681,9 @@ namespace EditorAnimatorControl.Editor
                 return;
             }
 
+            m_PreviewGo.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+
+            
             if (!TryGetClipLengthByStateName(m_AnimFadeData.FirstStateName, m_Animator, m_AnimFadeData.AnimLayer
                     , out m_FistClipLength, out m_AnimOneName, out m_FirstClip))
             {
@@ -735,8 +756,10 @@ namespace EditorAnimatorControl.Editor
             // m_TimeSlider.value = 0;
             m_TimeSlider.SetValueWithoutNotify(0);
             m_OnRefreshMaxTime?.Invoke();
+            m_PreviewGo.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
 
             m_HasBaked = true;
+
         }
 
 
